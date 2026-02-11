@@ -9,6 +9,63 @@ import base64
 import jinja2
 import shutil
 import hashlib
+import functools
+
+
+def run_openscad(*params: str):
+    print("Running OpenSCAD:", *params)
+    subprocess.run(["openscad"] + list(params), check=True)
+
+
+ParamSet = typing.Sequence[typing.Mapping[str, typing.Any]]
+
+
+class ScadContext:
+    def __init__(self, file: str, additional_params: typing.Sequence[str] = (),
+                 description_extra_html: typing.Optional[str] = None):
+        self.file = file
+        self.additional_params = additional_params
+        self.description_extra_html = description_extra_html
+        self.html_file = self.name() + ".html"
+        self.link = self.html_file
+
+    @functools.cache
+    def load_own_params(self) -> ParamSet:
+        with tempfile.NamedTemporaryFile(mode="r", suffix=".json", delete=False) as f:
+            run_openscad("-o", f.name, "--export-format=param", self.file)
+            return json.load(f)["parameters"]
+
+    @functools.cache
+    def load_additional_params(self) -> ParamSet:
+        seq = []
+        for path in self.additional_params:
+            with open(path, "r", encoding="utf-8") as f:
+                seq.extend(json.load(f)["parameters"])
+        return seq
+
+    @functools.cache
+    def combined_params(self) -> ParamSet:
+        combined = []
+
+        def add(param, origin):
+            param = dict(param)
+            # if a parameter exists twice, drop the first one, but keep that default value.
+            for i, existing in enumerate(combined):
+                if existing["name"] == param["name"]:
+                    combined.pop(i)
+                    param["initial"] = existing["initial"]
+                    break
+            param["origin"] = origin
+            combined.append(param)
+
+        for p in self.load_own_params():
+            add(p, "own")
+        for p in self.load_additional_params():
+            add(p, "additional")
+        return combined
+
+    def name(self):
+        return os.path.basename(self.file).removesuffix(".scad")
 
 
 def main():
@@ -16,9 +73,8 @@ def main():
     parser.add_argument(
         "--scad",
         type=str,
-        action="append",
         required=False,
-        help="Input SCAD file (repeatable)",
+        help="Input SCAD file",
     )
     parser.add_argument(
         "--scad-json",
@@ -93,113 +149,27 @@ def main():
     if args.export_filename_prefix is None:
         args.export_filename_prefix = gh_repo_name or "openscad-export"
 
-    def run_openscad(*params: str):
-        subprocess.run(["openscad"] + list(params), check=True)
-
-    scad_configs: typing.List[typing.Dict[str, typing.Any]] = []
+    contexts: typing.List[ScadContext] = []
     if args.scad_json:
         scad_json = args.scad_json
         if scad_json.startswith("@"):  # @path
             with open(scad_json[1:], "r", encoding="utf-8") as f:
                 scad_json = f.read()
-        try:
-            parsed = json.loads(scad_json)
-        except json.JSONDecodeError as e:
-            raise SystemExit(f"--scad-json is not valid JSON: {e}")
-
-        if not isinstance(parsed, list):
-            raise SystemExit(
-                "--scad-json must be a JSON array: [{file: <scad>, additional-params: [<param.json>, ...]}, ...]"
-            )
-        for item in parsed:
-            if not isinstance(item, dict) or "file" not in item:
-                raise SystemExit(
-                    "--scad-json entries must be objects with a 'file' key (and optional 'additional-params')"
-                )
-            additional = item.get("additional-params", [])
-            if additional is None:
-                additional = []
-            if not isinstance(additional, list):
-                raise SystemExit("'additional-params' must be a list")
-
-            desc_extra = item.get("description-extra-html", None)
-            if desc_extra is None:
-                desc_extra = args.description_extra_html
-            if not isinstance(desc_extra, str):
-                raise SystemExit("'description-extra-html' must be a string")
-
-            scad_configs.append(
-                {
-                    "file": os.path.abspath(item["file"]),
-                    "additional_params": [os.path.abspath(p) for p in additional],
-                    "description_extra_html": desc_extra,
-                }
-            )
+        for entry in json.loads(scad_json):
+            contexts.append(ScadContext(file=entry["file"], additional_params=entry["additional-params"],
+                                        description_extra_html=entry.get("description-extra-html", None)))
     else:
-        if not args.scad:
-            raise SystemExit("At least one --scad (or --scad-json) must be provided")
-        if len(args.scad) != 1 and args.additional_params:
-            raise SystemExit(
-                "--additional-params is only supported with a single --scad input (use --scad-json for multiple)"
-            )
-        scad_configs = []
-        for i, scad in enumerate(args.scad):
-            scad_configs.append(
-                {
-                    "file": os.path.abspath(scad),
-                    "additional_params": [
-                        os.path.abspath(p) for p in args.additional_params
-                    ]
-                    if i == 0 and len(args.scad) == 1
-                    else [],
-                    "description_extra_html": args.description_extra_html,
-                }
-            )
+        contexts.append(ScadContext(file=args.scad, additional_params=args.additional_params,
+                                    description_extra_html=args.description_extra_html))
 
-    scad_host_paths = [c["file"] for c in scad_configs]
-    scad_root = os.path.commonpath([os.path.dirname(p) for p in scad_host_paths])
-
-    scad_entries: typing.List[typing.Dict[str, typing.Any]] = []
-    for cfg in scad_configs:
-        scad_host_path = cfg["file"]
-        with tempfile.NamedTemporaryFile(
-            mode="r",
-            suffix=".json",
-            delete=False,
-        ) as f:
-            run_openscad("-o", f.name, "--export-format=param", scad_host_path)
-            metadata = json.load(f)
-
-        additional_parameters: typing.List[typing.Dict[str, typing.Any]] = []
-        for param_path in cfg["additional_params"]:
-            with open(param_path, "r", encoding="utf-8") as f:
-                additional_metadata = json.load(f)
-            params = additional_metadata.get("parameters")
-            if not isinstance(params, list):
-                raise SystemExit(
-                    f"Additional param file does not contain a 'parameters' array: {param_path}"
-                )
-            for p in params:
-                if not isinstance(p, dict):
-                    raise SystemExit(
-                        f"Additional param file contains non-object entries: {param_path}"
-                    )
-                p2 = dict(p)
-                p2["_is_additional"] = True
-                additional_parameters.append(p2)
-        scad_entries.append(
-            {
-                "host_path": scad_host_path,
-                "virtual_path": host_path_to_virtual(scad_root, scad_host_path),
-                "metadata": metadata,
-                "additional_parameters": additional_parameters,
-                "description_extra_html": cfg.get("description_extra_html", ""),
-            }
-        )
+    scad_root = os.path.commonpath([os.path.dirname(p.file) for p in contexts])
 
     fs: typing.Dict[str, bytes] = {}
-    for entry in scad_entries:
-        load_scad_recursively(entry["host_path"], scad_root, fs)
+    for context in contexts:
+        load_scad_recursively(context.file, scad_root, fs)
+        context.relative = host_path_to_virtual(scad_root, context.file)
+        if args.clean_urls:
+            context.link = context.link.removesuffix(".html")
 
     # Bundle a minimal fontconfig setup and a small font set.
     # The OpenSCAD WASM build does not include a system-wide fontconfig config,
@@ -215,77 +185,40 @@ def main():
     except FileExistsError:
         pass
     j2env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(os.path.dirname(__file__) + "/src")
+        loader=jinja2.FileSystemLoader(os.path.dirname(__file__) + "/src"),
+        undefined=jinja2.StrictUndefined
     )
     j2env.filters["json_dump"] = json.dumps
-    variables_base = {
+    variables_base: typing.Dict[str, typing.Any] = {
         "fs": {k: base64.b64encode(v).decode("ascii") for k, v in fs.items()},
-        "inputs": [e["virtual_path"] for e in scad_entries],
         "args": args,
+        "contexts": contexts,
     }
-
-    generators: typing.List[typing.Dict[str, str]] = []
-    for entry in scad_entries:
-        output_html = output_filename_for_scad(entry["virtual_path"])
-        generators.append(
-            {
-                "virtual_path": entry["virtual_path"],
-                "output_html": output_html,
-                "link": link_for_output_filename(
-                    output_html, clean_urls=args.clean_urls
-                ),
-                "label": label_for_scad(entry["virtual_path"]),
-            }
-        )
-    variables_base["generators"] = generators
 
     worker_source = j2env.get_template("worker.js.jinja2").render(**variables_base)
     worker_hash = hashlib.sha256(worker_source.encode("utf-8")).hexdigest()[:12]
     worker_script_name = f"worker.{worker_hash}.js"
     variables_base["worker_script_name"] = worker_script_name
 
-    if args.mode == "single":
-        if len(scad_entries) != 1:
-            raise SystemExit(
-                "--mode=single requires exactly one --scad input (use --mode=multi instead)"
-            )
-
-        with open(os.path.join(args.output, "index.html"), "w") as f:
-            variables = dict(variables_base)
-            variables.update(
-                {
-                    "metadata": scad_entries[0]["metadata"],
-                    "additional_parameters": scad_entries[0]["additional_parameters"],
-                    "input": scad_entries[0]["virtual_path"],
-                    "output_html": "index.html",
-                    "description_extra_html": scad_entries[0]["description_extra_html"],
-                }
-            )
-            f.write(j2env.get_template("index.html.jinja2").render(**variables))
-
-    if args.mode == "multi":
-        for entry in scad_entries:
-            output_html = output_filename_for_scad(entry["virtual_path"])
-            variables = dict(variables_base)
-            variables.update(
-                {
-                    "metadata": entry["metadata"],
-                    "additional_parameters": entry["additional_parameters"],
-                    "input": entry["virtual_path"],
-                    "output_html": output_html,
-                    "description_extra_html": entry["description_extra_html"],
-                }
-            )
-            with open(os.path.join(args.output, output_html), "w") as f:
-                f.write(j2env.get_template("index.html.jinja2").render(**variables))
-
-        with open(os.path.join(args.output, "index.html"), "w") as f:
-            f.write(
-                j2env.get_template("multi_index.html.jinja2").render(**variables_base)
-            )
-
     with open(os.path.join(args.output, worker_script_name), "w") as f:
         f.write(worker_source)
+
+    if args.mode == "single":
+        if len(contexts) != 1:
+            raise SystemExit("--mode=single requires exactly one --scad input (use --mode=multi instead)")
+
+        contexts[0].html_file = "index.html"
+    else:
+        with open(os.path.join(args.output, "index.html"), "w") as f:
+            f.write(j2env.get_template("multi_index.html.jinja2").render(**variables_base))
+
+    for ctx in contexts:
+        with open(os.path.join(args.output, ctx.html_file), "w") as f:
+            f.write(j2env.get_template("index.html.jinja2").render(
+                ctx=ctx,
+                **variables_base
+            ))
+
     try:
         shutil.rmtree(args.output + "/openscad-wasm")
     except FileNotFoundError:
@@ -302,31 +235,6 @@ def host_path_to_virtual(root: str, host_path: str) -> str:
     if rel == ".":
         rel = os.path.basename(host_path)
     return "/" + rel.lstrip("./")
-
-
-def output_filename_for_scad(virtual_path: str) -> str:
-    name = virtual_path.lstrip("/")
-    if name.lower().endswith(".scad"):
-        name = name[: -len(".scad")]
-    # Keep some context (directories) to avoid collisions.
-    name = name.replace("/", "-")
-    name = re.sub(r"[^A-Za-z0-9._-]+", "-", name).strip("-_")
-    if not name:
-        name = "model"
-    return f"{name}.html"
-
-
-def label_for_scad(virtual_path: str) -> str:
-    name = os.path.basename(virtual_path)
-    if name.lower().endswith(".scad"):
-        name = name[: -len(".scad")]
-    return name or virtual_path
-
-
-def link_for_output_filename(output_html: str, *, clean_urls: bool) -> str:
-    if clean_urls and output_html.lower().endswith(".html"):
-        return output_html[: -len(".html")]
-    return output_html
 
 
 def load_scad_recursively(host_path: str, root: str, fs: typing.Dict[str, bytes]):
@@ -466,9 +374,9 @@ def add_fonts_from_appimage(fs: typing.Dict[str, bytes]):
     appimage_path = os.environ.get("OPENSCAD_APPIMAGE")
     if not appimage_path:
         version = (
-            os.environ.get("OPENSCAD_VERSION")
-            or os.environ.get("openscad-version")
-            or "2026.01.19"
+                os.environ.get("OPENSCAD_VERSION")
+                or os.environ.get("openscad-version")
+                or "2026.01.19"
         )
         appimage_path = os.path.join(
             os.getcwd(),

@@ -1,7 +1,7 @@
 import OpenSCAD from "./openscad-wasm/openscad.js"
 import * as THREE from "https://esm.sh/three@0.160.0"
-import { STLLoader } from "https://esm.sh/three@0.160.0/examples/jsm/loaders/STLLoader.js"
-import { GLTFExporter } from "https://esm.sh/three@0.160.0/examples/jsm/exporters/GLTFExporter.js"
+import {STLLoader} from "https://esm.sh/three@0.160.0/examples/jsm/loaders/STLLoader.js"
+import {GLTFExporter} from "https://esm.sh/three@0.160.0/examples/jsm/exporters/GLTFExporter.js"
 
 console.log("Worker started")
 
@@ -92,8 +92,6 @@ function formatErrorForMessage(e) {
 let runQueue = Promise.resolve()
 // OpenSCAD's WASM build aborts its runtime after a render.
 // Create a fresh instance for each render.
-
-const INPUTS = {{ inputs | json_dump }}
 
 function base64ToUint8Array(base64) {
     const binary = atob(base64)
@@ -245,41 +243,15 @@ async function createInstance() {
     return instance
 }
 
-function normalizeInputPath(input) {
-    const inputPath = String(input || "")
-    if (!inputPath) {
-        throw new Error("Missing input SCAD path")
-    }
-    const normalized = inputPath.startsWith("/") ? inputPath : "/" + inputPath
-    if (!INPUTS.includes(normalized)) {
-        throw new Error("Unknown input SCAD path: " + normalized)
-    }
-    return normalized
-}
-
-async function renderOnce({ input, customization, additionalParamNames }) {
+async function renderOnce({ input, normalParams, additionalParams }) {
     const instance = await createInstance()
-    const inputPath = normalizeInputPath(input)
-
-    const additionalParamNameSet = new Set(
-        Array.isArray(additionalParamNames)
-            ? additionalParamNames.filter((x) => typeof x === "string")
-            : [],
-    )
 
     const stringifiedParameters = {}
-    const additionalDefinitions = []
-    for (const [k, v] of Object.entries(customization)) {
-        if (additionalParamNameSet.has(k)) {
-            // -D expects an OpenSCAD expression; JSON happens to be close enough for our value types.
-            additionalDefinitions.push(`${k}=${JSON.stringify(v)}`)
-        } else {
-            // Parameter set files use unquoted strings for string parameters.
-            stringifiedParameters[k] = typeof v === "string" ? v : JSON.stringify(v)
-        }
+    for (const [k, v] of Object.entries(normalParams)) {
+        // Parameter set files use unquoted strings for string parameters.
+        stringifiedParameters[k] = typeof v === "string" ? v : JSON.stringify(v)
     }
     logInfo("Parameters:", stringifiedParameters)
-    logInfo("Additional -D:", additionalDefinitions)
     instance.FS.writeFile(
         "/parameters.json",
         JSON.stringify({
@@ -297,7 +269,7 @@ async function renderOnce({ input, customization, additionalParamNames }) {
         // ignore
     }
     const args = [
-        inputPath,
+        input,
         "-o",
         output,
         "--export-format=binstl",
@@ -306,9 +278,11 @@ async function renderOnce({ input, customization, additionalParamNames }) {
         "-P",
         "single",
     ]
-    for (const def of additionalDefinitions) {
-        args.push("-D", def)
+    for (const [k, v] of Object.entries(additionalParams)) {
+        // -D expects an OpenSCAD expression; JSON happens to be close enough for our value types.
+        args.push("-D", `${k}=${JSON.stringify(v)}`)
     }
+    logInfo("Line:", args)
     try {
         instance.callMain(args)
         const stlBytes = instance.FS.readFile(output)
@@ -344,8 +318,8 @@ self.addEventListener("message", (event) => {
         currentLogTruncated = false
         await renderOnce({
             input: msg.input,
-            customization: msg.customization,
-            additionalParamNames: msg.additionalParamNames,
+            normalParams: msg.normalParams,
+            additionalParams: msg.additionalParams,
         })
     })
     runQueue.catch((e) => {

@@ -85,10 +85,9 @@
         const renderErrorLog = document.getElementById("render-error-log");
         const renderErrorCopy = document.getElementById("render-error-copy");
         const worker = new Worker("./{{ worker_script_name }}", {type: "module"})
-        const SCAD_INPUT = {{ input | json_dump }};
         const ADDITIONAL_PARAM_NAMES = [
-            {% for param in additional_parameters | default([]) %}
-                {{ param['name'] | json_dump }},
+            {% for name in additional_param_names | default([]) %}
+                {{ name | json_dump }},
             {% endfor %}
         ];
         function setRenderErrorVisible(visible) {
@@ -157,14 +156,21 @@
         });
 
         const defaultCustomization = {
-            {% for param in metadata["parameters"] + (additional_parameters | default([])) -%}
-                "{{ param["name"] }}":
-                {%- if param["type"] == "boolean" %}{% if param["initial"] %}true{% else %}false{% endif %}
-                {%- elif param["type"] == "string" %}"{{ param["initial"] }}"
-                {%- else %}{{ param["initial"] }}{% endif %},
+            {% for entry in ctx.combined_params() -%}
+                "{{ entry["name"] }}":
+                {%- if entry["type"] == "boolean" %}{% if entry["initial"] %}true{% else %}false{% endif %}
+                {%- elif entry["type"] == "string" %}"{{ entry["initial"] }}"
+                {%- else %}{{ entry["initial"] }}{% endif %},
             {% endfor %}
         };
         const currentCustomization = JSON.parse(JSON.stringify(defaultCustomization));
+        const additionalParamNames = [
+            {% for entry in ctx.combined_params() -%}
+                {%- if entry["origin"] == "additional" -%}
+                    {{ entry["name"] | json_dump }},
+                {%- endif -%}
+            {%- endfor %}
+        ];
 
         function jsonEqual(a, b) {
             if (a === undefined && b === undefined) {
@@ -398,11 +404,20 @@
         function startRender() {
             clearRenderError();
             setRendering(true);
+            const normalParams = {};
+            const additionalParams = {};
+            for (const field in currentCustomization) {
+                if (additionalParamNames.includes(field)) {
+                    additionalParams[field] = currentCustomization[field];
+                } else {
+                    normalParams[field] = currentCustomization[field];
+                }
+            }
             worker.postMessage({
                 type: "render",
-                input: SCAD_INPUT,
-                customization: currentCustomization,
-                additionalParamNames: ADDITIONAL_PARAM_NAMES,
+                input: {{ ctx.relative | json_dump }},
+                normalParams: normalParams,
+                additionalParams: additionalParams
             });
         }
 
@@ -491,16 +506,16 @@
     <p class="mt-3">
         This is the model generator for <a href="{{ args.project_uri }}">{{ args.project_name }}</a>.
         Any changes you make are saved in the URL, so you can share that URL or create a bookmark to keep those changes around.
-        {% if description_extra_html %}
-            {{ description_extra_html | safe }}
+        {% if ctx.description_extra_html %}
+            {{ ctx.description_extra_html | safe }}
         {% endif %}
-        {% if generators and generators|length > 1 %}
+        {% if contexts|length > 1 %}
             Other generators:
-            {% for g in generators %}
-                {% if g.output_html == output_html %}
-                    <strong>{{ g.label }}</strong>{% if not loop.last %},{% endif %}
+            {% for g in contexts %}
+                {% if g == ctx %}
+                    <strong>{{ g.name() }}</strong>{% if not loop.last %},{% endif %}
                 {% else %}
-                    <a href="{{ g.link }}">{{ g.label }}</a>{% if not loop.last %},{% endif %}
+                    <a href="{{ g.link }}">{{ g.name() }}</a>{% if not loop.last %},{% endif %}
                 {% endif %}
             {% endfor %}
         {% endif %}
@@ -514,35 +529,42 @@
             <span class="visually-hidden">Revert to default</span>
         </button>
     {% endmacro %}
-    {% macro render_param(param) %}
+
+    {% set state = namespace(current_group=None) %}
+    {% for param in ctx.combined_params() %}
+        {% set group = param.get('group') %}
+        {% if group and group != state.current_group %}
+            {% set state.current_group = group %}
+            <h3>{{ group }}</h3>
+        {% endif %}
         {% set pid = "parameter_" + param['name'] %}
         <div class="col-12">
-            <label for="{{ pid }}">{{ param['name'].replace('_', ' ') }}<br><span
-                    class="form-text">{{ param['caption'] }}</span></label>
+            <label for="{{ pid }}">{{ param['name'].replace('_', ' ') }}
+                {%- if param['caption'] is defined %}<br><span class="form-text">{{ param['caption'] }}</span>{% endif %}</label>
         </div>
         <div class="col-12 mb-3">
-            {% if param['type'] == 'number' and param['initial'] is iterable %}
+            {% if param['type'] == 'number' and param["initial"] is iterable %}
                 <div class="input-group customizer-group" attr-name="{{ param['name'] }}">
-                    {% for initial in param['initial'] %}
+                    {% for initial in param["initial"] %}
                         <input class="form-control customizer" type="number"{% if loop.index0 == 0 %}
                                id="{{ pid }}"{% endif %} value="{{ initial }}" attr-name="{{ param['name'] }}"
                                attr-index="{{ loop.index0 }}" autocomplete="off">
                     {% endfor %}
                     {{ render_reset_button(param['name']) }}
                 </div>
-            {% elif param['options'] %}
+            {% elif param['options'] is defined %}
                 <div class="input-group customizer-group" attr-name="{{ param['name'] }}">
                     <select class="form-select customizer" id="{{ pid }}" attr-name="{{ param['name'] }}" autocomplete="off">
                         {% for option in param['options'] %}
                             <option value='{{ option['value'] | json_dump }}'
-                                    {% if option['value'] == param['initial'] %}selected{% endif %}>{{ option['name'] }}</option>
+                                    {% if option['value'] == param["initial"] %}selected{% endif %}>{{ option['name'] }}</option>
                         {% endfor %}
                     </select>
                     {{ render_reset_button(param['name']) }}
                 </div>
             {% elif param['type'] == 'number' %}
                 <div class="input-group customizer-group" attr-name="{{ param['name'] }}">
-                    <input class="form-control customizer" type="number" id="{{ pid }}" value="{{ param['initial'] }}"
+                    <input class="form-control customizer" type="number" id="{{ pid }}" value="{{ param["initial"] }}"
                            attr-name="{{ param['name'] }}" autocomplete="off">
                     {{ render_reset_button(param['name']) }}
                 </div>
@@ -550,28 +572,18 @@
                 <div class="input-group customizer-group" attr-name="{{ param['name'] }}">
                     <div class="input-group-text">
                         <input class="form-check-input mt-0 customizer" type="checkbox" id="{{ pid }}"
-                               {% if param['initial'] %}checked{% endif %} attr-name="{{ param['name'] }}" autocomplete="off">
+                               {% if param["initial"] %}checked{% endif %} attr-name="{{ param['name'] }}" autocomplete="off">
                     </div>
                     {{ render_reset_button(param['name']) }}
                 </div>
             {% else %}
                 <div class="input-group customizer-group" attr-name="{{ param['name'] }}">
-                    <input class="form-control customizer" type="text" id="{{ pid }}" value="{{ param['initial'] }}"
+                    <input class="form-control customizer" type="text" id="{{ pid }}" value="{{ param["initial"] }}"
                            attr-name="{{ param['name'] }}" autocomplete="off">
                     {{ render_reset_button(param['name']) }}
                 </div>
             {% endif %}
         </div>
-    {% endmacro %}
-
-    {% set state = namespace(current_group=None) %}
-    {% for param in metadata["parameters"] + (additional_parameters | default([])) %}
-        {% set group = param.get('group') %}
-        {% if group and group != state.current_group %}
-            {% set state.current_group = group %}
-            <h3>{{ group }}</h3>
-        {% endif %}
-        {{ render_param(param) }}
     {% endfor %}
 </div>
 

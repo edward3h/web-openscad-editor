@@ -20,8 +20,8 @@
 <p class="text-muted">Select a model generator:</p>
 
 <div class="list-group mb-4">
-    {% for g in generators %}
-        <a class="list-group-item list-group-item-action" href="{{ g.link }}">{{ g.label }}</a>
+    {% for g in contexts %}
+        <a class="list-group-item list-group-item-action" href="{{ g.link }}">{{ g.name() }}</a>
     {% endfor %}
 </div>
 
