@@ -156,7 +156,7 @@ def main():
             with open(scad_json[1:], "r", encoding="utf-8") as f:
                 scad_json = f.read()
         for entry in json.loads(scad_json):
-            contexts.append(ScadContext(file=entry["file"], additional_params=entry["additional-params"],
+            contexts.append(ScadContext(file=entry["file"], additional_params=entry.get("additional-params", []),
                                         description_extra_html=entry.get("description-extra-html", None)))
     else:
         contexts.append(ScadContext(file=args.scad, additional_params=args.additional_params,
