@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="auto">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,6 +15,8 @@
             height: 100%;
             display: grid;
             grid-template-columns: 6fr 4fr;
+            background-color: var(--page-bg);
+            color: var(--page-fg);
         }
         #pane-left {
             resize: horizontal;
@@ -24,7 +26,8 @@
             overflow-x: auto;
             padding-right: 1em;
             margin: 0;
-            border-left: 2px solid #dee2e6;
+            border-left: 2px solid var(--border-color);
+            background-color: var(--page-bg);
         }
         #controls {
             position: absolute;
@@ -68,13 +71,40 @@
         .customizer-group.is-modified .form-control,
         .customizer-group.is-modified .form-select,
         .customizer-group.is-modified .input-group-text {
-            background-color: #fff7e0;
+            background-color: var(--customizer-modified-bg);
         }
 
         .customizer-reset svg {
             display: block;
         }
+
+        :root {
+            color-scheme: light dark;
+            --page-bg: #ffffff;
+            --page-fg: #212529;
+            --border-color: #dee2e6;
+            --customizer-modified-bg: #fff7e0;
+            --render-log-bg: #f8f9fa;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --page-bg: #0f1113;
+                --page-fg: #f8f9fa;
+                --border-color: #2f3337;
+                --customizer-modified-bg: #3b2a06;
+                --render-log-bg: #1e2124;
+            }
+        }
     </style>
+    <script>
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
+        function setTheme() {
+            document.documentElement.setAttribute("data-bs-theme", prefersDark.matches ? "dark" : "light");
+        }
+        setTheme();
+        prefersDark.addEventListener("change", setTheme);
+    </script>
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
     <script type="module">
         const renderButton = document.getElementById("render");
@@ -595,7 +625,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <pre id="render-error-log" class="bg-light border rounded p-2" style="white-space: pre-wrap;"></pre>
+                <pre id="render-error-log" class="border rounded p-2" style="white-space: pre-wrap; background-color: var(--render-log-bg);"></pre>
             </div>
             <div class="modal-footer">
                 <button id="render-error-copy" type="button" class="btn btn-outline-secondary">Copy</button>

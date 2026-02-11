@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="auto">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,8 +11,31 @@
             padding: 2rem;
             max-width: 60rem;
             margin: 0 auto;
+            background-color: var(--page-bg);
+            color: var(--page-fg);
+        }
+
+        :root {
+            color-scheme: light dark;
+            --page-bg: #ffffff;
+            --page-fg: #212529;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --page-bg: #0f1113;
+                --page-fg: #f8f9fa;
+            }
         }
     </style>
+    <script>
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
+        function setTheme() {
+            document.documentElement.setAttribute("data-bs-theme", prefersDark.matches ? "dark" : "light");
+        }
+        setTheme();
+        prefersDark.addEventListener("change", setTheme);
+    </script>
 </head>
 <body>
 <h1 class="mb-3">{{ args.project_name }}</h1>
