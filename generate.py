@@ -10,6 +10,9 @@ import jinja2
 import shutil
 import hashlib
 import functools
+import tomllib
+
+import config_generated
 
 
 def run_openscad(*params: str):
@@ -17,32 +20,47 @@ def run_openscad(*params: str):
     subprocess.run(["openscad"] + list(params), check=True)
 
 
+def download(file: str, uri: str, sha256: typing.Optional[str] = None):
+    if os.path.exists(file):
+        return
+    print(f"Downloading {uri} to {file}")
+    import urllib.request
+    try:
+        os.makedirs(os.path.dirname(file))
+    except FileExistsError:
+        pass
+    urllib.request.urlretrieve(uri, file + ".tmp")
+    if sha256:
+        with open(file, "rb") as f:
+            actual_sha256 = hashlib.sha256(f.read()).hexdigest()
+        if actual_sha256 != sha256:
+            raise RuntimeError(f"SHA256 mismatch for {file}: expected {sha256}, got {actual_sha256}")
+    os.rename(file + ".tmp", file)
+
+
 ParamSet = typing.Sequence[typing.Mapping[str, typing.Any]]
 
 
 class ScadContext:
     def __init__(
-        self,
-        file: str,
-        additional_params: typing.Sequence[str] = (),
-        description_extra_html: typing.Optional[str] = None,
+            self,
+            config: config_generated.ModelItem
     ):
-        self.file = file
-        self.additional_params = additional_params
-        self.description_extra_html = description_extra_html
+        self.config = config
         self.html_file = self.name() + ".html"
         self.link = self.html_file
+        self.relative: str = ""  # Set later in main()
 
     @functools.cache
     def load_own_params(self) -> ParamSet:
         with tempfile.NamedTemporaryFile(mode="r", suffix=".json", delete=False) as f:
-            run_openscad("-o", f.name, "--export-format=param", self.file)
+            run_openscad("-o", f.name, "--export-format=param", self.config.file)
             return json.load(f)["parameters"]
 
     @functools.cache
     def load_additional_params(self) -> ParamSet:
         seq = []
-        for path in self.additional_params:
+        for path in self.config.additional_params:
             with open(path, "r", encoding="utf-8") as f:
                 seq.extend(json.load(f)["parameters"])
         return seq
@@ -69,35 +87,18 @@ class ScadContext:
         return combined
 
     def name(self):
-        return os.path.basename(self.file).removesuffix(".scad")
+        return os.path.basename(self.config.file).removesuffix(".scad")
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--scad",
-        type=str,
-        required=False,
-        help="Input SCAD file",
+    parser = argparse.ArgumentParser(
+        description="Generate a web OpenSCAD editor export from TOML configuration"
     )
     parser.add_argument(
-        "--scad-json",
+        "--config",
         type=str,
-        required=False,
-        help=(
-            "JSON array of objects: [{file: <scad>, additional-params: [<param.json>, ...], description-extra-html: <html>}, ...]. "
-            "If prefixed with '@', the remainder is treated as a path to a JSON file."
-        ),
-    )
-    parser.add_argument(
-        "--additional-params",
-        type=str,
-        action="append",
-        default=[],
-        help=(
-            "Additional param metadata JSON file(s) (same format as --export-format=param). "
-            "Only supported when a single --scad input is used (use --scad-json for multi-input)."
-        ),
+        required=True,
+        help="Path to TOML configuration file",
     )
     parser.add_argument(
         "--output",
@@ -107,90 +108,34 @@ def main():
         help="Output directory (default: out)",
     )
     parser.add_argument(
-        "--openscad-wasm",
-        type=str,
-        required=True,
-        help="Path to OpenSCAD WebAssembly library",
-    )
-    parser.add_argument("--project-name", type=str, required=False, default=None)
-    parser.add_argument("--project-uri", type=str, required=False, default=None)
-    parser.add_argument(
-        "--description-extra-html",
-        type=str,
-        required=False,
-        default="",
-        help=(
-            "Optional additional HTML appended to the description paragraph (e.g. a docs link)."
-        ),
-    )
-    parser.add_argument(
-        "--export-filename-prefix", type=str, required=False, default=None
-    )
-    parser.add_argument(
-        "--head-extra-html",
-        type=str,
-        required=False,
-        default="",
-        help=(
-            "Optional HTML to inject at the end of the <head> tag (e.g. tracking scripts)."
-        ),
-    )
-    parser.add_argument(
-        "--mode",
-        type=str,
-        choices=["single", "multi"],
-        required=False,
-        default="single",
-        help="Output mode: single (index.html) or multi (per-file HTML + index list)",
-    )
-    parser.add_argument(
         "--clean-urls",
         action="store_true",
-        help="When linking to generated pages, omit the .html extension",
+        help="Remove .html suffix from links (for GitHub/Cloudflare Pages)",
     )
     args = parser.parse_args()
 
-    gh_repo = os.environ.get("GITHUB_REPOSITORY")
-    gh_repo_name = gh_repo.split("/", 1)[1] if gh_repo and "/" in gh_repo else gh_repo
-    gh_server_url = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
-    gh_repo_uri = f"{gh_server_url}/{gh_repo}" if gh_repo else None
+    # Load configuration from TOML
+    with open(args.config, "rb") as f:
+        config: config_generated.WebOpenscadEditorConfiguration = config_generated.WebOpenscadEditorConfiguration.model_validate(
+            tomllib.load(f))
 
-    if args.project_name is None:
-        args.project_name = gh_repo_name or "PROJECT"
-    if args.project_uri is None:
-        args.project_uri = gh_repo_uri or "https://example.com/"
-    if args.export_filename_prefix is None:
-        args.export_filename_prefix = gh_repo_name or "openscad-export"
+    download("build/openscad-wasm-web.zip", "https://files.openscad.org/snapshots/OpenSCAD-" + config.openscad.version + "-WebAssembly-web.zip", config.openscad.sha256_wasm_web)
+    download("build/openscad.AppImage", "https://files.openscad.org/snapshots/OpenSCAD-" + config.openscad.version + "-x86_64.AppImage", config.openscad.sha256_appimage)
 
+    # Create ScadContext objects from config inputs
     contexts: typing.List[ScadContext] = []
-    if args.scad_json:
-        scad_json = args.scad_json
-        if scad_json.startswith("@"):  # @path
-            with open(scad_json[1:], "r", encoding="utf-8") as f:
-                scad_json = f.read()
-        for entry in json.loads(scad_json):
-            contexts.append(
-                ScadContext(
-                    file=entry["file"],
-                    additional_params=entry.get("additional-params", []),
-                    description_extra_html=entry.get("description-extra-html", None),
-                )
-            )
-    else:
-        contexts.append(
-            ScadContext(
-                file=args.scad,
-                additional_params=args.additional_params,
-                description_extra_html=args.description_extra_html,
-            )
-        )
+    for inp in config.model:
+        inp.file = os.path.join(os.path.dirname(args.config), inp.file)
+        inp.additional_params = [os.path.join(os.path.dirname(args.config), p) for p in inp.additional_params]
+        ctx = ScadContext(inp)
+        contexts.append(ctx)
 
-    scad_root = os.path.commonpath([os.path.dirname(p.file) for p in contexts])
+    scad_root = os.path.commonpath([os.path.dirname(p.config.file) for p in contexts])
 
     fs: typing.Dict[str, bytes] = {}
     for context in contexts:
-        load_scad_recursively(context.file, scad_root, fs)
-        context.relative = host_path_to_virtual(scad_root, context.file)
+        load_scad_recursively(context.config.file, scad_root, fs)
+        context.relative = host_path_to_virtual(scad_root, context.config.file)
         if args.clean_urls:
             context.link = context.link.removesuffix(".html")
 
@@ -200,7 +145,7 @@ def main():
     #   Fontconfig error: Cannot load default config file
     # and then falls back to missing fonts.
     try:
-        add_default_fonts(fs)
+        add_default_fonts(config.openscad.font_source, fs)
     except Exception as e:
         print(f"Warning: failed to bundle fonts: {e}")
     try:
@@ -214,7 +159,7 @@ def main():
     j2env.filters["json_dump"] = json.dumps
     variables_base: typing.Dict[str, typing.Any] = {
         "fs": {k: base64.b64encode(v).decode("ascii") for k, v in fs.items()},
-        "args": args,
+        "config": config,
         "contexts": contexts,
     }
 
@@ -226,10 +171,10 @@ def main():
     with open(os.path.join(args.output, worker_script_name), "w") as f:
         f.write(worker_source)
 
-    if args.mode == "single":
+    if config.project.mode == "single":
         if len(contexts) != 1:
             raise SystemExit(
-                "--mode=single requires exactly one --scad input (use --mode=multi instead)"
+                "--mode=single requires exactly one input (use --mode=multi instead)"
             )
 
         contexts[0].html_file = "index.html"
@@ -251,7 +196,8 @@ def main():
         shutil.rmtree(args.output + "/openscad-wasm")
     except FileNotFoundError:
         pass
-    shutil.copytree(args.openscad_wasm, args.output + "/openscad-wasm")
+
+    shutil.unpack_archive("build/openscad-wasm-web.zip", args.output + "/openscad-wasm")
 
 
 pattern_include = re.compile(r"^\s*(?:include|use)\s+<(.+)>\s*$")
@@ -286,7 +232,7 @@ def load_scad_recursively(host_path: str, root: str, fs: typing.Dict[str, bytes]
             )
 
 
-def add_default_fonts(fs: typing.Dict[str, bytes]):
+def add_default_fonts(font_source, fs: typing.Dict[str, bytes]):
     # Provide a minimal fontconfig config file.
     # This is intentionally tiny (the heavy lifting is the font files).
     if "/fonts/fonts.conf" not in fs:
@@ -299,7 +245,6 @@ def add_default_fonts(fs: typing.Dict[str, bytes]):
             b"</fontconfig>\n"
         )
 
-    font_source = (os.environ.get("OPENSCAD_FONT_SOURCE") or "auto").strip().lower()
     if font_source not in {"auto", "appimage", "system"}:
         font_source = "auto"
 
@@ -399,18 +344,7 @@ def add_fonts_from_system(fs: typing.Dict[str, bytes]):
 
 
 def add_fonts_from_appimage(fs: typing.Dict[str, bytes]):
-    appimage_path = os.environ.get("OPENSCAD_APPIMAGE")
-    if not appimage_path:
-        version = (
-            os.environ.get("OPENSCAD_VERSION")
-            or os.environ.get("openscad-version")
-            or "2026.01.19"
-        )
-        appimage_path = os.path.join(
-            os.getcwd(),
-            ".openscad-cache",
-            f"OpenSCAD-{version}-x86_64.AppImage",
-        )
+    appimage_path = "build/openscad.AppImage"
     if not os.path.exists(appimage_path):
         raise FileNotFoundError(
             f"OpenSCAD AppImage not found at {appimage_path}. Set OPENSCAD_APPIMAGE to override."

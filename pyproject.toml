@@ -2,8 +2,20 @@
 name = "web-openscad-editor"
 version = "0.1.0"
 description = "Add your description here"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "jinja2>=3.1.6",
     "pytest>=9.0.2",
+    "pydantic>=2.0.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "datamodel-code-generator>=0.53.0",
+]
+
+[tool.datamodel-codegen]
+input = "config-schema.json"
+output = "config_generated.py"
+output-model-type = "pydantic_v2.BaseModel"
+field-constraints = true

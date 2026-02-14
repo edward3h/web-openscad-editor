@@ -3,59 +3,17 @@ description: Generate a web OpenSCAD editor export
 author: yawkat
 
 inputs:
-  scad:
-    description: "Input SCAD file (single path). Ignored if 'scad-json' is set."
+  config:
+    description: "Path to TOML configuration file (recommended). When set, this replaces all other configuration options."
     required: false
-    default: ""
-  scad-json:
-    description: "Optional JSON array for multi-input: [{file: <scad>, additional-params: [<param.json>, ...], description-extra-html: <html>}, ...]. Overrides 'scad'."
-    required: false
-  mode:
-    description: "Output mode: single (index.html) or multi (per-file HTML + index list)"
-    required: false
-    default: single
   clean-urls:
-    description: "Omit .html in generated links (for hosts that map /foo -> /foo.html)"
+    description: "Omit .html in generated links (for hosts that map /foo -> /foo.html)."
     required: false
     default: "true"
   output:
-    description: Output directory
+    description: "Output directory."
     required: false
     default: out
-
-  openscad-version:
-    description: OpenSCAD snapshot version (e.g. 2026.01.19)
-    required: false
-    default: 2026.01.19
-  openscad-appimage-sha256:
-    description: Optional sha256 for OpenSCAD AppImage
-    required: false
-  openscad-wasm-zip-sha256:
-    description: Optional sha256 for OpenSCAD WebAssembly web zip
-    required: false
-
-  project-name:
-    description: Project name shown in the web export
-    required: false
-  project-uri:
-    description: Project URI shown in the web export
-    required: false
-  description-extra-html:
-    description: Optional extra HTML appended to the description paragraph (e.g. a docs link)
-    required: false
-    default: ""
-  export-filename-prefix:
-    description: Prefix for exported filenames
-    required: false
-  head-extra-html:
-    description: Optional HTML to inject at the end of the <head> tag (e.g. tracking scripts)
-    required: false
-    default: ""
-
-  uv-run-args:
-    description: Extra args appended after `python generate.py` (space-separated)
-    required: false
-    default: ""
 
 runs:
   using: composite
@@ -75,76 +33,6 @@ runs:
           uv.lock
           pyproject.toml
 
-    - name: Install OpenSCAD snapshot
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        sudo apt-get update
-        # OpenSCAD (AppImage) still relies on some system OpenGL/EGL libs.
-        sudo apt-get install -y xvfb libegl1 libgl1 libopengl0
-
-        version='${{ inputs.openscad-version }}'
-        base='https://files.openscad.org/snapshots'
-        appimage="OpenSCAD-${version}-x86_64.AppImage"
-        wasmzip="OpenSCAD-${version}-WebAssembly-web.zip"
-
-        mkdir -p .openscad-cache
-        cd .openscad-cache
-
-        if [ ! -f "$appimage" ]; then
-          curl -fsSLo "$appimage" "$base/$appimage"
-        fi
-        if [ -n '${{ inputs.openscad-appimage-sha256 }}' ]; then
-          echo "${{ inputs.openscad-appimage-sha256 }}  $appimage" | sha256sum -c -
-        fi
-
-        if [ ! -f "$wasmzip" ]; then
-          curl -fsSLo "$wasmzip" "$base/$wasmzip"
-        fi
-        if [ -n '${{ inputs.openscad-wasm-zip-sha256 }}' ]; then
-          echo "${{ inputs.openscad-wasm-zip-sha256 }}  $wasmzip" | sha256sum -c -
-        fi
-
-        chmod +x "$appimage"
-
-        if [ ! -d squashfs-root ]; then
-          "./$appimage" --appimage-extract >/dev/null
-        fi
-
-        cat > openscad <<'EOF'
-        #!/usr/bin/env bash
-        set -euo pipefail
-        DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-        if command -v xvfb-run >/dev/null 2>&1; then
-          exec xvfb-run -a "$DIR/squashfs-root/AppRun" "$@"
-        else
-          exec "$DIR/squashfs-root/AppRun" "$@"
-        fi
-        EOF
-        chmod +x openscad
-
-        mkdir -p openscad-wasm
-        if [ ! -f openscad-wasm/openscad.js ] || [ ! -f openscad-wasm/openscad.wasm ]; then
-          rm -rf openscad-wasm
-          mkdir -p openscad-wasm
-          unzip -q -o "$wasmzip" -d openscad-wasm-tmp
-          if [ -f openscad-wasm-tmp/openscad.js ] && [ -f openscad-wasm-tmp/openscad.wasm ]; then
-            mv openscad-wasm-tmp/openscad.js openscad-wasm/
-            mv openscad-wasm-tmp/openscad.wasm openscad-wasm/
-          else
-            echo "Unexpected WASM zip layout: $wasmzip" >&2
-            find openscad-wasm-tmp -maxdepth 2 -type f -print >&2
-            exit 1
-          fi
-          rm -rf openscad-wasm-tmp
-        fi
-
-        echo "$PWD" >> "$GITHUB_PATH"
-        echo "OPENSCAD_WASM_DIR=$PWD/openscad-wasm" >> "$GITHUB_ENV"
-        echo "OPENSCAD_APPIMAGE=$PWD/$appimage" >> "$GITHUB_ENV"
-        echo "OPENSCAD_VERSION=$version" >> "$GITHUB_ENV"
-
     - name: Install Python dependencies
       working-directory: ${{ github.action_path }}
       shell: bash
@@ -158,11 +46,8 @@ runs:
       run: |
         set -euo pipefail
 
-        scad_raw='${{ inputs.scad }}'
-        scad_raw="${scad_raw//$'\r'/}"
-
-        scad_json_raw='${{ inputs.scad-json }}'
-        scad_json_raw="${scad_json_raw//$'\r'/}"
+        config_file='${{ inputs.config }}'
+        config_file="${config_file//$'\r'/}"
 
         out='${{ inputs.output }}'
         if [[ "$out" = /* ]]; then
@@ -171,46 +56,14 @@ runs:
           out_path="$GITHUB_WORKSPACE/$out"
         fi
 
-        args=(
-          --output "$out_path"
-          --openscad-wasm "$OPENSCAD_WASM_DIR"
-          --mode '${{ inputs.mode }}'
-        )
-
+        args=()
+        if [[ "$config_file" != /* ]]; then
+          config_file="$GITHUB_WORKSPACE/$config_file"
+        fi
+        args+=(--config "$config_file")
         if [ '${{ inputs.clean-urls }}' = 'true' ]; then
           args+=(--clean-urls)
         fi
+        args+=(--output "$out_path")
 
-        scad_json_file="$(mktemp)"
-        python normalize_scad_input.py \
-          --workspace "$GITHUB_WORKSPACE" \
-          --scad "$scad_raw" \
-          --scad-json "$scad_json_raw" \
-          --out "$scad_json_file"
-        args+=(--scad-json "@$scad_json_file")
-        if [ -n '${{ inputs.project-name }}' ]; then
-          args+=(--project-name '${{ inputs.project-name }}')
-        fi
-        if [ -n '${{ inputs.project-uri }}' ]; then
-          args+=(--project-uri '${{ inputs.project-uri }}')
-        fi
-        if [ -n '${{ inputs.description-extra-html }}' ]; then
-          args+=(--description-extra-html '${{ inputs.description-extra-html }}')
-        fi
-        if [ -n '${{ inputs.export-filename-prefix }}' ]; then
-          args+=(--export-filename-prefix '${{ inputs.export-filename-prefix }}')
-        fi
-        if [ -n '${{ inputs.head-extra-html }}' ]; then
-          args+=(--head-extra-html '${{ inputs.head-extra-html }}')
-        fi
-
-        extra='${{ inputs.uv-run-args }}'
-        if [ -n "$extra" ]; then
-          # shellcheck disable=SC2206
-          extra_args=( $extra )
-        else
-          extra_args=()
-        fi
-
-        uv run python generate.py "${args[@]}" "${extra_args[@]}"
-        rm -f "$scad_json_file"
+        uv run python generate.py "${args[@]}"

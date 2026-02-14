@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Web OpenSCAD Editor Configuration",
+  "description": "Configuration schema for web-openscad-editor TOML files",
+  "type": "object",
+  "properties": {
+    "project": {
+      "type": "object",
+      "description": "Project metadata displayed in the web interface",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Project name shown in the web export"
+        },
+        "uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "Project URI (link in the web interface)"
+        },
+        "export-filename-prefix": {
+          "type": "string",
+          "description": "Prefix for downloaded files"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["single", "multi"],
+          "default": "single",
+          "description": "Output mode: single (one model) or multi (multiple models with index)"
+        },
+        "head-extra": {
+          "type": "string",
+          "default": "",
+          "description": "HTML injected at end of <head> tag"
+        }
+      }
+    },
+    "openscad": {
+      "type": "object",
+      "description": "OpenSCAD-specific configuration",
+      "default": {},
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "OpenSCAD version to download",
+          "default": "2026.01.19",
+          "pattern": "^\\d{4}\\.\\d{2}\\.\\d{2}$"
+        },
+        "sha256-appimage": {
+          "type": ["string", "null"],
+          "description": "SHA256 checksum of the OpenSCAD AppImage to download",
+          "default": null,
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "sha256-wasm-web": {
+          "type": ["string", "null"],
+          "description": "SHA256 checksum of the OpenSCAD WASM web zip to download",
+          "default": null,
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "font-source": {
+          "type": "string",
+          "enum": ["auto", "appimage", "system"],
+          "default": "auto",
+          "description": "Font source selection"
+        }
+      }
+    },
+    "model": {
+      "type": "array",
+      "description": "Input SCAD files to process",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["file"],
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "Path to SCAD file"
+          },
+          "additional-params": {
+            "type": "array",
+            "description": "Array of parameter JSON files",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "description-extra-html": {
+            "type": "string",
+            "description": "Per-file HTML description"
+          }
+        }
+      }
+    }
+  },
+  "required": ["model"]
+}
