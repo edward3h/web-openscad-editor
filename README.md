@@ -69,6 +69,40 @@ Each `[[model]]` section defines one SCAD file:
 - `file`: Path to SCAD file (required)
 - `additional-params`: Array of parameter JSON files (optional)
 - `description-extra-html`: Per-file HTML description (optional)
+- `umami-track-render`: List of model parameter names to track when model is rendered (optional, default: `null`)
+- `umami-track-export`: List of model parameter names to track when model is exported/downloaded as STL (optional, default: `null`)
+
+### Umami Analytics Tracking
+
+You can track user interactions with your OpenSCAD models using [Umami](https://umami.is) analytics. First, include the Umami script in your project configuration:
+
+```toml
+[project]
+head-extra = '<script defer src="https://your-umami-instance.com/script.js" data-website-id="your-website-id"></script>'
+```
+
+Then configure which model parameters to track for each model:
+
+```toml
+[[model]]
+file = "models/box.scad"
+# Track render events with specific parameters
+umami-track-render = ["width", "height", "depth"]
+# Track export events with different parameters
+umami-track-export = ["width", "height", "depth", "material"]
+```
+
+**Tracking behavior:**
+- `null` (default): No tracking for this event
+- `[]` (empty array): Track the event with no parameter data
+- `["param1", "param2"]`: Track the event with the current values of specified parameters
+
+When configured, the following events are tracked:
+- `"render"`: Triggered when the model is successfully rendered in the 3D viewer
+- `"export-stl"`: Triggered when the user downloads the STL file
+
+The event data will include the current values of the specified model parameters, allowing you to understand which parameter combinations are most popular with your users.
+
 
 ## Local usage
 

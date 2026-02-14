@@ -88,6 +88,22 @@
           "description-extra-html": {
             "type": "string",
             "description": "Per-file HTML description"
+          },
+          "umami-track-render": {
+            "type": ["array", "null"],
+            "description": "List of model parameter names to track when model is rendered. Set to null (default) to disable tracking, or [] to track with no parameters.",
+            "items": {
+              "type": "string"
+            },
+            "default": null
+          },
+          "umami-track-export": {
+            "type": ["array", "null"],
+            "description": "List of model parameter names to track when model is exported (STL download). Set to null (default) to disable tracking, or [] to track with no parameters.",
+            "items": {
+              "type": "string"
+            },
+            "default": null
           }
         }
       }

@@ -166,6 +166,9 @@
                 document.getElementById("model").src = URL.createObjectURL(new Blob([event.data.glb], {type: "model/gltf-binary"}));
                 clearRenderError();
                 setRendering(false);
+                {% if ctx.config.umami_track_render is not none %}
+                trackUmamiEvent("render", {{ ctx.config.umami_track_render | json_dump }});
+                {% endif %}
             }
             if (event.data.type === "error") {
                 console.error("Worker error", event.data);
@@ -431,6 +434,24 @@
             }
         }
 
+        function trackUmamiEvent(eventName, paramNames) {
+            // paramNames === null means no tracking
+            // paramNames === [] means track event with no data
+            // paramNames === ["a", "b"] means track event with data for parameters a and b
+            if (typeof umami === 'undefined' || paramNames === null) {
+                return;
+            }
+            const eventData = {};
+            if (Array.isArray(paramNames)) {
+                for (const paramName of paramNames) {
+                    if (paramName in currentCustomization) {
+                        eventData[paramName] = currentCustomization[paramName];
+                    }
+                }
+            }
+            umami.track(eventName, eventData);
+        }
+
         function startRender() {
             clearRenderError();
             setRendering(true);
@@ -506,6 +527,9 @@
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
+                {% if ctx.config.umami_track_export is not none %}
+                trackUmamiEvent("export-stl", {{ ctx.config.umami_track_export | json_dump }});
+                {% endif %}
             }
         });
     </script>

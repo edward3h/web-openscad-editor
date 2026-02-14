@@ -3,3 +3,7 @@ head-extra = '<script defer src="https://um.yawk.at/script.js" data-website-id="
 
 [[model]]
 file = "test.scad"
+# Track render events with selected model parameters
+umami-track-render = ["shape", "width", "depth", "height"]
+# Track export events with additional parameters
+umami-track-export = ["shape", "width", "depth", "height", "rounding"]
