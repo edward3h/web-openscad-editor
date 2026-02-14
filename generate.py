@@ -17,7 +17,7 @@ import config_generated
 
 def run_openscad(*params: str):
     print("Running OpenSCAD:", *params)
-    subprocess.run(["openscad"] + list(params), check=True)
+    subprocess.run(["build/openscad.AppImage"] + list(params), check=True)
 
 
 def download(file: str, uri: str, sha256: typing.Optional[str] = None):
