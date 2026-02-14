@@ -172,7 +172,7 @@ def main():
     with open(os.path.join(args.output, worker_script_name), "w") as f:
         f.write(worker_source)
 
-    if config.project.mode == "single":
+    if config.project.mode == config_generated.Mode.single:
         if len(contexts) != 1:
             raise SystemExit(
                 "--mode=single requires exactly one input (use --mode=multi instead)"
