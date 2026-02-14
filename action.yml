@@ -47,6 +47,10 @@ inputs:
   export-filename-prefix:
     description: Prefix for exported filenames
     required: false
+  head-extra-html:
+    description: Optional HTML to inject at the end of the <head> tag (e.g. tracking scripts)
+    required: false
+    default: ""
 
   uv-run-args:
     description: Extra args appended after `python generate.py` (space-separated)
@@ -195,6 +199,9 @@ runs:
         fi
         if [ -n '${{ inputs.export-filename-prefix }}' ]; then
           args+=(--export-filename-prefix '${{ inputs.export-filename-prefix }}')
+        fi
+        if [ -n '${{ inputs.head-extra-html }}' ]; then
+          args+=(--head-extra-html '${{ inputs.head-extra-html }}')
         fi
 
         extra='${{ inputs.uv-run-args }}'

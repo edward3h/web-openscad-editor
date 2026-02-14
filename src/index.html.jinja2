@@ -509,6 +509,9 @@
             }
         });
     </script>
+    {% if args.head_extra_html %}
+    {{ args.head_extra_html | safe }}
+    {% endif %}
 </head>
 <body>
 <div id="pane-left">

@@ -36,6 +36,9 @@
         setTheme();
         prefersDark.addEventListener("change", setTheme);
     </script>
+    {% if args.head_extra_html %}
+    {{ args.head_extra_html | safe }}
+    {% endif %}
 </head>
 <body>
 <h1 class="mb-3">{{ args.project_name }}</h1>

@@ -21,8 +21,12 @@ ParamSet = typing.Sequence[typing.Mapping[str, typing.Any]]
 
 
 class ScadContext:
-    def __init__(self, file: str, additional_params: typing.Sequence[str] = (),
-                 description_extra_html: typing.Optional[str] = None):
+    def __init__(
+        self,
+        file: str,
+        additional_params: typing.Sequence[str] = (),
+        description_extra_html: typing.Optional[str] = None,
+    ):
         self.file = file
         self.additional_params = additional_params
         self.description_extra_html = description_extra_html
@@ -123,6 +127,15 @@ def main():
         "--export-filename-prefix", type=str, required=False, default=None
     )
     parser.add_argument(
+        "--head-extra-html",
+        type=str,
+        required=False,
+        default="",
+        help=(
+            "Optional HTML to inject at the end of the <head> tag (e.g. tracking scripts)."
+        ),
+    )
+    parser.add_argument(
         "--mode",
         type=str,
         choices=["single", "multi"],
@@ -156,11 +169,21 @@ def main():
             with open(scad_json[1:], "r", encoding="utf-8") as f:
                 scad_json = f.read()
         for entry in json.loads(scad_json):
-            contexts.append(ScadContext(file=entry["file"], additional_params=entry.get("additional-params", []),
-                                        description_extra_html=entry.get("description-extra-html", None)))
+            contexts.append(
+                ScadContext(
+                    file=entry["file"],
+                    additional_params=entry.get("additional-params", []),
+                    description_extra_html=entry.get("description-extra-html", None),
+                )
+            )
     else:
-        contexts.append(ScadContext(file=args.scad, additional_params=args.additional_params,
-                                    description_extra_html=args.description_extra_html))
+        contexts.append(
+            ScadContext(
+                file=args.scad,
+                additional_params=args.additional_params,
+                description_extra_html=args.description_extra_html,
+            )
+        )
 
     scad_root = os.path.commonpath([os.path.dirname(p.file) for p in contexts])
 
@@ -186,7 +209,7 @@ def main():
         pass
     j2env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(os.path.dirname(__file__) + "/src"),
-        undefined=jinja2.StrictUndefined
+        undefined=jinja2.StrictUndefined,
     )
     j2env.filters["json_dump"] = json.dumps
     variables_base: typing.Dict[str, typing.Any] = {
@@ -205,19 +228,24 @@ def main():
 
     if args.mode == "single":
         if len(contexts) != 1:
-            raise SystemExit("--mode=single requires exactly one --scad input (use --mode=multi instead)")
+            raise SystemExit(
+                "--mode=single requires exactly one --scad input (use --mode=multi instead)"
+            )
 
         contexts[0].html_file = "index.html"
     else:
         with open(os.path.join(args.output, "index.html"), "w") as f:
-            f.write(j2env.get_template("multi_index.html.jinja2").render(**variables_base))
+            f.write(
+                j2env.get_template("multi_index.html.jinja2").render(**variables_base)
+            )
 
     for ctx in contexts:
         with open(os.path.join(args.output, ctx.html_file), "w") as f:
-            f.write(j2env.get_template("index.html.jinja2").render(
-                ctx=ctx,
-                **variables_base
-            ))
+            f.write(
+                j2env.get_template("index.html.jinja2").render(
+                    ctx=ctx, **variables_base
+                )
+            )
 
     try:
         shutil.rmtree(args.output + "/openscad-wasm")
@@ -374,9 +402,9 @@ def add_fonts_from_appimage(fs: typing.Dict[str, bytes]):
     appimage_path = os.environ.get("OPENSCAD_APPIMAGE")
     if not appimage_path:
         version = (
-                os.environ.get("OPENSCAD_VERSION")
-                or os.environ.get("openscad-version")
-                or "2026.01.19"
+            os.environ.get("OPENSCAD_VERSION")
+            or os.environ.get("openscad-version")
+            or "2026.01.19"
         )
         appimage_path = os.path.join(
             os.getcwd(),

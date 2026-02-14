@@ -41,6 +41,7 @@ jobs:
           # project-uri: https://github.com/OWNER/REPO
           # description-extra-html: " See <a href=\"https://example.com/docs\">docs</a>."  # for single-input
           # export-filename-prefix: my-project
+          # head-extra-html: "<script>/* tracking script */</script>"
           # uv-run-args: "--some-generator-flag value"
       - uses: actions/upload-artifact@v4
         with:
@@ -63,6 +64,7 @@ Defaults:
 - `export-filename-prefix`: repository name (falls back to `openscad-export`)
 - `project-uri`: repository URL (falls back to `https://example.com/`)
 - `description-extra-html`: appended to the description paragraph (raw HTML; default empty). For multi-input, prefer per-entry `description-extra-html` in `scad-json`.
+- `head-extra-html`: injected at the end of the `<head>` tag (raw HTML; default empty). Useful for tracking scripts, analytics, or custom meta tags.
 - `openscad-version`: `2026.01.19` (downloads from `https://files.openscad.org/snapshots/`)
 - `mode`: `single`
 - `clean-urls`: `"true"` (action only; CLI default is off)
