@@ -157,6 +157,7 @@
             setRendering(false);
         })
         let lastResult = null;
+        let isInitialRender = true;
         worker.addEventListener("message", (event) => {
             if (!event.data || typeof event.data !== "object") {
                 return;
@@ -167,8 +168,12 @@
                 clearRenderError();
                 setRendering(false);
                 {% if ctx.config.umami_track_render is not none %}
-                trackUmamiEvent("render", {{ ctx.config.umami_track_render | json_dump }});
+                // Don't track the initial automatic render on page load
+                if (!isInitialRender) {
+                    trackUmamiEvent("render", {{ ctx.config.umami_track_render | json_dump }});
+                }
                 {% endif %}
+                isInitialRender = false;
             }
             if (event.data.type === "error") {
                 console.error("Worker error", event.data);
