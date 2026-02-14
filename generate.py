@@ -121,6 +121,7 @@ def main():
 
     download("build/openscad-wasm-web.zip", "https://files.openscad.org/snapshots/OpenSCAD-" + config.openscad.version + "-WebAssembly-web.zip", config.openscad.sha256_wasm_web)
     download("build/openscad.AppImage", "https://files.openscad.org/snapshots/OpenSCAD-" + config.openscad.version + "-x86_64.AppImage", config.openscad.sha256_appimage)
+    os.chmod("build/openscad.AppImage", 0o755)
 
     # Create ScadContext objects from config inputs
     contexts: typing.List[ScadContext] = []
