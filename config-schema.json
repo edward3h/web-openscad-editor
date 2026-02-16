@@ -89,6 +89,39 @@
             "type": "string",
             "description": "Per-file HTML description"
           },
+          "param-metadata": {
+            "type": "object",
+            "description": "Additional metadata for model parameters",
+            "default": {},
+            "patternProperties": {
+              "^[a-zA-Z0-9_-]+$": {
+                "type": "object",
+                "properties": {
+                  "presets": {
+                    "type": ["object", "null"],
+                    "description": "Named presets for this parameter",
+                    "default": null,
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                        "description": "Text to display in the presets dropdown",
+                        "default": "Presets"
+                      },
+                      "values": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": ["string", "number", "boolean", "array"],
+                          "items": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           "umami-track-render": {
             "type": ["array", "null"],
             "description": "List of model parameter names to track when model is rendered. Set to null (default) to disable tracking, or [] to track with no parameters.",
