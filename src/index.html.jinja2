@@ -295,6 +295,22 @@
             return !jsonEqual(currentValue, defaultValue);
         }
 
+        const elementsForParameter = {};
+        for (const elem of document.querySelectorAll("[data-parameter]")) {
+            const parameterName = elem.dataset.parameter;
+            if (!(parameterName in elementsForParameter)) {
+                elementsForParameter[parameterName] = [];
+            }
+            elementsForParameter[parameterName].push(elem);
+        }
+
+        const displayConditions = {};
+        {% for name in ctx.config.param_metadata.keys() -%}
+            {% if ctx.config.param_metadata[name].display_condition %}
+                displayConditions['{{ name }}'] = new Function(...Object.keys(currentCustomization), "return {{ ctx.config.param_metadata[name].display_condition.js }}");
+            {% endif %}
+        {%- endfor %}
+
         function syncCustomizationIndicators() {
             for (const group of document.querySelectorAll(".customizer-group")) {
                 const name = group.getAttribute("attr-name");
@@ -308,6 +324,16 @@
                     btn.disabled = !modified;
                 }
             }
+            {% for name in ctx.config.param_metadata.keys() -%}
+                {% if ctx.config.param_metadata[name].display_condition %}
+                    {
+                        const display = displayConditions['{{ name }}'](...Object.values(currentCustomization));
+                        for (const elem of elementsForParameter["{{ name }}"]) {
+                            elem.style.display = display ? "" : "none";
+                        }
+                    }
+                {% endif %}
+            {%- endfor %}
         }
 
         function applyCustomizationToInputs() {
@@ -619,11 +645,11 @@
             <h3>{{ group }}</h3>
         {% endif %}
         {% set pid = "parameter_" + param['name'] %}
-        <div class="col-12">
+        <div class="col-12" data-parameter="{{ param['name'] }}">
             <label for="{{ pid }}">{{ param['name'].replace('_', ' ') }}
                 {%- if param['caption'] is defined %}<br><span class="form-text">{{ param['caption'] }}</span>{% endif %}</label>
         </div>
-        <div class="col-12 mb-3">
+        <div class="col-12 mb-3" data-parameter="{{ param['name'] }}">
             {% if param['type'] == 'number' and param["initial"] is iterable %}
                 <div class="input-group customizer-group" attr-name="{{ param['name'] }}">
                     {% for initial in param["initial"] %}

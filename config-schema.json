@@ -117,6 +117,17 @@
                         }
                       }
                     }
+                  },
+                  "display-condition": {
+                    "type": ["object", "null"],
+                    "description": "Expression with a condition to display this parameter",
+                    "default": null,
+                    "properties": {
+                      "js": {
+                        "type": "string",
+                        "description": "JavaScript expression"
+                      }
+                    }
                   }
                 }
               }
