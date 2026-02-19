@@ -90,6 +90,9 @@ class ModelItem(BaseModel):
     additional_params: list[str] | None = Field(
         [], alias='additional-params', description='Array of parameter JSON files'
     )
+    additional_params_scad: list[str] | None = Field(
+        [], alias='additional-params-scad', description='Array of OpenSCAD files to load additional params from'
+    )
     description_extra_html: str | None = Field(
         None, alias='description-extra-html', description='Per-file HTML description'
     )
