@@ -597,6 +597,7 @@ name = "web-openscad-editor"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "datamodel-code-generator" },
     { name = "jinja2" },
     { name = "pydantic" },
     { name = "pytest" },
@@ -609,6 +610,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "datamodel-code-generator", specifier = ">=0.53.0" },
     { name = "datamodel-code-generator", marker = "extra == 'dev'", specifier = ">=0.53.0" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "pydantic", specifier = ">=2.0.0" },

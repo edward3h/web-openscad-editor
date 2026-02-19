@@ -7,10 +7,6 @@ dependencies = [
     "jinja2>=3.1.6",
     "pytest>=9.0.2",
     "pydantic>=2.0.0",
-]
-
-[project.optional-dependencies]
-dev = [
     "datamodel-code-generator>=0.53.0",
 ]
 
