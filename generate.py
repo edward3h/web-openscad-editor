@@ -40,6 +40,10 @@ def download(file: str, uri: str, sha256: typing.Optional[str] = None):
 
 ParamSet = typing.Sequence[typing.Mapping[str, typing.Any]]
 
+def extract_params(openscad_file: str) -> ParamSet:
+    with tempfile.NamedTemporaryFile(mode="r", suffix=".json", delete=False) as f:
+        run_openscad("-o", f.name, "--export-format=param", openscad_file)
+        return json.load(f)["parameters"]
 
 class ScadContext:
     def __init__(
@@ -53,9 +57,7 @@ class ScadContext:
 
     @functools.cache
     def load_own_params(self) -> ParamSet:
-        with tempfile.NamedTemporaryFile(mode="r", suffix=".json", delete=False) as f:
-            run_openscad("-o", f.name, "--export-format=param", self.config.file)
-            return json.load(f)["parameters"]
+        return extract_params(self.config.file)
 
     @functools.cache
     def load_additional_params(self) -> ParamSet:
@@ -63,6 +65,8 @@ class ScadContext:
         for path in self.config.additional_params:
             with open(path, "r", encoding="utf-8") as f:
                 seq.extend(json.load(f)["parameters"])
+        for path in self.config.additional_params_from:
+            seq.extend(extract_params(path))
         return seq
 
     @functools.cache

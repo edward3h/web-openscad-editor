@@ -85,6 +85,14 @@
             },
             "default": []
           },
+          "additional-params-scad": {
+            "type": "array",
+            "description": "Array of OpenSCAD files to load additional params from",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
           "description-extra-html": {
             "type": "string",
             "description": "Per-file HTML description"
