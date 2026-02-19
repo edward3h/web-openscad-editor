@@ -65,7 +65,7 @@ class ScadContext:
         for path in self.config.additional_params:
             with open(path, "r", encoding="utf-8") as f:
                 seq.extend(json.load(f)["parameters"])
-        for path in self.config.additional_params_from:
+        for path in self.config.additional_params_scad:
             seq.extend(extract_params(path))
         return seq
 
