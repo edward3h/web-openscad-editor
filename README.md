@@ -234,6 +234,21 @@ file = "model1.scad"
 file = "model2.scad"
 ```
 
+Be aware that nested tables need to be named accordingly:
+
+```toml
+[model-template.default]
+description-extra-html = "This description is added to all models."
+
+# WILL NOT WORK:
+[model.param-metadata.magnets]
+help-link = "https://example.com"
+
+# WORKS:
+[model-template.default.param-metadata.magnets]
+help-link = "https://example.com"
+```
+
 Models and model templates will inherit from the `default` template unless configured otherwise. Let's set the template name explicitly:
 
 ```toml
