@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Web OpenSCAD Editor Configuration",
   "description": "Configuration schema for web-openscad-editor TOML files",
   "type": "object",
@@ -20,12 +20,6 @@
         "export-filename-prefix": {
           "type": "string",
           "description": "Prefix for downloaded files"
-        },
-        "mode": {
-          "type": "string",
-          "enum": ["single", "multi"],
-          "default": "single",
-          "description": "Output mode: single (one model) or multi (multiple models with index)"
         },
         "head-extra": {
           "type": "string",
@@ -70,123 +64,142 @@
       "description": "Input SCAD files to process",
       "minItems": 1,
       "items": {
-        "type": "object",
-        "required": ["file"],
-        "properties": {
-          "file": {
-            "type": "string",
-            "description": "Path to SCAD file"
-          },
-          "additional-params": {
-            "type": "array",
-            "description": "Array of parameter JSON files",
-            "items": {
-              "type": "string"
-            },
-            "default": []
-          },
-          "additional-params-scad": {
-            "type": "array",
-            "description": "Array of OpenSCAD files to load additional params from",
-            "items": {
-              "type": "string"
-            },
-            "default": []
-          },
-          "description-extra-html": {
-            "type": "string",
-            "description": "Per-file HTML description"
-          },
-          "param-metadata": {
+        "allOf": [
+          { "$ref": "#/$defs/ModelConfig" },
+          {
             "type": "object",
-            "description": "Additional metadata for model parameters",
-            "default": {},
-            "patternProperties": {
-              "^[a-zA-Z0-9_-]+$": {
-                "type": "object",
-                "properties": {
-                  "presets": {
-                    "type": ["object", "null"],
-                    "description": "Named presets for this parameter",
-                    "default": null,
-                    "properties": {
-                      "text": {
-                        "type": "string",
-                        "description": "Text to display in the presets dropdown",
-                        "default": "Presets"
-                      },
-                      "values": {
-                        "type": "object",
-                        "additionalProperties": {
-                          "type": ["string", "number", "boolean", "array"],
-                          "items": {
-                            "type": "number"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "display-condition": {
-                    "type": ["object", "null"],
-                    "description": "Expression with a condition to display this parameter",
-                    "default": null,
-                    "properties": {
-                      "js": {
-                        "type": "string",
-                        "description": "JavaScript expression"
-                      }
-                    }
-                  },
-                  "help-link": {
-                    "type": ["string", "null"],
-                    "description": "Help link for this parameter",
-                    "default": null
-                  }
-                }
+            "required": ["file"],
+            "properties": {
+              "file": {
+                "type": "string",
+                "description": "Path to SCAD file"
+              },
+              "index": {
+                "type": ["boolean", "null"],
+                "description": "Whether this model should be generated at index.html in the output. Can be set at most for one model. By default, for projects with a single model this is true for that model, and for projects with multiple models this is false for all models. Can be set at most once per project. If a project has no model defined as the index, a bare-bones index with a list of all models will be generated.",
+                "default": null
               }
             }
-          },
-          "tab-metadata": {
-            "type": "object",
-            "description": "Additional metadata for model tabs",
-            "default": {},
-            "patternProperties": {
-              ".*": {
-                "type": "object",
-                "properties": {
-                  "collapsed": {
-                    "type": "boolean",
-                    "description": "Whether this tab is collapsed by default",
-                    "default": false
-                  },
-                  "help-link": {
-                    "type": ["string", "null"],
-                    "description": "Help link for this parameter",
-                    "default": null
-                  }
-                }
-              }
-            }
-          },
-          "umami-track-render": {
-            "type": ["array", "null"],
-            "description": "List of model parameter names to track when model is rendered. Set to null (default) to disable tracking, or [] to track with no parameters.",
-            "items": {
-              "type": "string"
-            },
-            "default": null
-          },
-          "umami-track-export": {
-            "type": ["array", "null"],
-            "description": "List of model parameter names to track when model is exported (STL download). Set to null (default) to disable tracking, or [] to track with no parameters.",
-            "items": {
-              "type": "string"
-            },
-            "default": null
           }
-        }
+        ]
       }
     }
   },
-  "required": ["model"]
+  "required": [
+    "model"
+  ],
+  "$defs": {
+    "ModelConfig": {
+      "type": "object",
+      "properties": {
+        "additional-params": {
+          "type": "array",
+          "description": "Array of parameter JSON files",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "additional-params-scad": {
+          "type": "array",
+          "description": "Array of OpenSCAD files to load additional params from",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "description-extra-html": {
+          "type": "string",
+          "description": "Per-file HTML description"
+        },
+        "param-metadata": {
+          "type": "object",
+          "description": "Additional metadata for model parameters",
+          "default": {},
+          "patternProperties": {
+            "^[a-zA-Z0-9_-]+$": {
+              "type": "object",
+              "properties": {
+                "presets": {
+                  "type": ["object", "null"],
+                  "description": "Named presets for this parameter",
+                  "default": null,
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "description": "Text to display in the presets dropdown",
+                      "default": "Presets"
+                    },
+                    "values": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "array"],
+                        "items": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                },
+                "display-condition": {
+                  "type": ["object", "null"],
+                  "description": "Expression with a condition to display this parameter",
+                  "default": null,
+                  "properties": {
+                    "js": {
+                      "type": "string",
+                      "description": "JavaScript expression"
+                    }
+                  }
+                },
+                "help-link": {
+                  "type": ["string", "null"],
+                  "description": "Help link for this parameter",
+                  "default": null
+                }
+              }
+            }
+          }
+        },
+        "tab-metadata": {
+          "type": "object",
+          "description": "Additional metadata for model tabs",
+          "default": {},
+          "patternProperties": {
+            ".*": {
+              "type": "object",
+              "properties": {
+                "collapsed": {
+                  "type": "boolean",
+                  "description": "Whether this tab is collapsed by default",
+                  "default": false
+                },
+                "help-link": {
+                  "type": ["string", "null"],
+                  "description": "Help link for this parameter",
+                  "default": null
+                }
+              }
+            }
+          }
+        },
+        "umami-track-render": {
+          "type": ["array", "null"],
+          "description": "List of model parameter names to track when model is rendered. Set to null (default) to disable tracking, or [] to track with no parameters.",
+          "items": {
+            "type": "string"
+          },
+          "default": null
+        },
+        "umami-track-export": {
+          "type": ["array", "null"],
+          "description": "List of model parameter names to track when model is exported (STL download). Set to null (default) to disable tracking, or [] to track with no parameters.",
+          "items": {
+            "type": "string"
+          },
+          "default": null
+        }
+      }
+    }
+  }
 }

@@ -187,14 +187,17 @@ def main():
     with open(os.path.join(args.output, worker_script_name), "w") as f:
         f.write(worker_source)
 
-    if config.project.mode == config_generated.Mode.single:
-        if len(contexts) != 1:
-            raise SystemExit(
-                "--mode=single requires exactly one input (use --mode=multi instead)"
-            )
-
-        contexts[0].html_file = "index.html"
-    else:
+    has_index = False
+    for ctx in contexts:
+        index = ctx.config.index
+        if index is None:
+            index = len(contexts) == 1
+        if index:
+            if has_index:
+                raise SystemExit("Multiple models have index=true")
+            has_index = True
+            ctx.html_file = "index.html"
+    if not has_index:
         with open(os.path.join(args.output, "index.html"), "w") as f:
             f.write(
                 j2env.get_template("multi_index.html.jinja2").render(**variables_base)
