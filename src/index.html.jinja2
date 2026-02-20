@@ -139,6 +139,7 @@
         const renderButton = document.getElementById("render");
         const renderState = document.getElementById("render-state");
         const downloadStlButton = document.getElementById("download-stl");
+        const autoRenderCheckbox = document.getElementById("auto-render");
         const renderError = document.getElementById("render-error");
         const renderErrorSummary = document.getElementById("render-error-summary");
         const renderErrorLog = document.getElementById("render-error-log");
@@ -149,6 +150,8 @@
                 {{ name | json_dump }},
             {% endfor %}
         ];
+        let isRendering = false;
+        let isDirty = false;
         function setRenderErrorVisible(visible) {
             if (visible) {
                 renderError.classList.remove("d-none");
@@ -468,6 +471,7 @@
 
                 updateUrlFromCustomization();
                 syncCustomizationIndicators();
+                triggerAutoRender();
             });
         }
 
@@ -475,6 +479,7 @@
             currentCustomization[name] = value;
             applyCustomizationToInputs();
             updateUrlFromCustomization();
+            triggerAutoRender();
         }
         window.setValueFromButton = setValueFromButton;
 
@@ -489,6 +494,7 @@
         }
 
         function setRendering(rendering) {
+            isRendering = rendering;
             renderButton.disabled = rendering;
             downloadStlButton.disabled = rendering;
             if (rendering) {
@@ -496,6 +502,11 @@
                 renderState.classList.remove("d-none");
             } else {
                 renderState.classList.add("d-none");
+                // If dirty flag is set, start a new render
+                if (isDirty) {
+                    isDirty = false;
+                    startRender();
+                }
             }
         }
 
@@ -537,6 +548,19 @@
             });
         }
 
+        function triggerAutoRender() {
+            if (!autoRenderCheckbox.checked) {
+                return;
+            }
+            if (isRendering) {
+                // Set dirty flag to render again after current render completes
+                isDirty = true;
+            } else {
+                // Start render immediately
+                startRender();
+            }
+        }
+
         renderErrorCopy.addEventListener("click", async () => {
             const text = renderErrorLog.textContent || "";
             try {
@@ -570,7 +594,7 @@
                     }
 
                     restoreCustomizationFromHash(destination.hash);
-                    startRender();
+                    triggerAutoRender();
                 },
             });
         });
@@ -610,6 +634,10 @@
     <div id="controls">
         <button id="render" type="button" class="btn btn-primary">Render<span id="render-state" class="d-none">ing… <span
                 class="spinner-border spinner-border-sm" aria-hidden="true"></span></span></button>
+        <label class="btn btn-secondary" for="auto-render">
+            <input class="form-check-input" type="checkbox" id="auto-render" checked>
+            Auto Render
+        </label>
         <button id="download-stl" type="button" class="btn btn-secondary">Save STL</button>
         <div id="render-error" class="alert alert-danger mt-2 d-none" role="alert">
             <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
