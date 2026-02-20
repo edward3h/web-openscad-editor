@@ -87,6 +87,24 @@
             visibility: hidden;
         }
 
+        .group-header {
+            display: inline-block;
+            width: 100%;
+            color: var(--bs-primary-color);
+            text-decoration: none;
+        }
+
+        .group-header .collapse-indicator {
+            margin-right: 0.5rem;
+            display: inline-block;
+            vertical-align: baseline;
+            transition: rotate 120ms ease-in-out;
+        }
+
+        .group-header.collapsed .collapse-indicator {
+            rotate: -90deg;
+        }
+
         :root {
             color-scheme: light dark;
             --page-bg: #ffffff;
@@ -648,10 +666,13 @@
 
     {% set state = namespace(current_group=None) %}
     {% for param in ctx.combined_params() %}
-        {% set group = param.get('group') %}
-        {% if group and group != state.current_group %}
-            {% set state.current_group = group %}
-            <h3>{{ group }}</h3>
+        {% if not state.current_group or param.get('group') != state.current_group.name %}
+            {% if state.current_group %}
+                </div> <!-- end of collapse -->
+            {% endif %}
+            {% set state.current_group = ctx.group(param.get('group')) %}
+            <a class="group-header{% if state.current_group.config.collapsed %} collapsed{% endif %}" href="#" data-bs-target="#collapse-{{ state.current_group.id }}" data-bs-toggle="collapse"><h3><svg class="collapse-indicator" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" stroke="none"><path d="M 0 5 H 20 L 10 15 Z"/></svg>{{ state.current_group.name }}</h3></a>
+            <div class="collapse{% if not state.current_group.config.collapsed %} show{% endif %}" id="collapse-{{ state.current_group.id }}">
         {% endif %}
         {% set pid = "parameter_" + param['name'] %}
         <div class="col-12" data-parameter="{{ param['name'] }}">
@@ -711,6 +732,9 @@
             {% endif %}
         </div>
     {% endfor %}
+    {% if state.current_group %}
+        </div> <!-- end of collapse -->
+    {% endif %}
 </div>
 
 <div class="modal fade" id="render-error-modal" tabindex="-1" aria-hidden="true">

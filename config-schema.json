@@ -146,6 +146,23 @@
               }
             }
           },
+          "tab-metadata": {
+            "type": "object",
+            "description": "Additional metadata for model tabs",
+            "default": {},
+            "patternProperties": {
+              ".*": {
+                "type": "object",
+                "properties": {
+                  "collapsed": {
+                    "type": "boolean",
+                    "description": "Whether this tab is collapsed by default",
+                    "default": false
+                  }
+                }
+              }
+            }
+          },
           "umami-track-render": {
             "type": ["array", "null"],
             "description": "List of model parameter names to track when model is rendered. Set to null (default) to disable tracking, or [] to track with no parameters.",

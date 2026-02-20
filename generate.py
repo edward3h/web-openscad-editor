@@ -93,6 +93,17 @@ class ScadContext:
     def name(self):
         return os.path.basename(self.config.file).removesuffix(".scad")
 
+    def group(self, name: str) -> "GroupInfo":
+        return GroupInfo(self, name)
+
+class GroupInfo:
+    def __init__(self, context: ScadContext, name: str):
+        self.name = name
+        self.config = context.config.tab_metadata.get(name, config_generated.TabMetadata())
+        self.id = hashlib.sha256(name.encode("utf-8")).hexdigest()
+
+    def __eq__(self, other):
+        return self.name == other.name
 
 def main():
     parser = argparse.ArgumentParser(

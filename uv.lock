@@ -603,17 +603,10 @@ dependencies = [
     { name = "pytest" },
 ]
 
-[package.optional-dependencies]
-dev = [
-    { name = "datamodel-code-generator" },
-]
-
 [package.metadata]
 requires-dist = [
     { name = "datamodel-code-generator", specifier = ">=0.53.0" },
-    { name = "datamodel-code-generator", marker = "extra == 'dev'", specifier = ">=0.53.0" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pytest", specifier = ">=9.0.2" },
 ]
-provides-extras = ["dev"]
