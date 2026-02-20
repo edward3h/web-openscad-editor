@@ -197,6 +197,23 @@ text = "Printer Presets"
 "Prusa Core One L" = [300, 330]
 ```
 
+##### Wildcards
+
+The `param-metadata` table name can contain a wildcard:
+
+```toml
+[[model]]
+file = "my-model.scad"
+
+[model.param-metadata."magent-*"]
+# Metadata for all parameters whose name starts with "magent-"
+display-condition = {js = "magnets"}
+```
+
+If multiple parameter metadata definitions match a parameter name, the metadata will be merged. Metadata defined later in the file will override metadata defined earlier.
+
+Note that if there is no matching parameter for a metadata definition, even if the definition is a wildcard, an exception will be thrown. If you intentionally write a definition that does not always match a parameter, you can disable this check using `require-present = false`.
+
 #### Analytics
 
 If you want to learn how your users configure your models, you can enable analytics tracking for specific parameters using [Umami](https://umami.is/). Whenever a user clicks the "Render" or "Export STL" button, a [custom event](https://umami.is/docs/track-events) is sent to Umami. The event properties will contain the configured values of the specified parameters.

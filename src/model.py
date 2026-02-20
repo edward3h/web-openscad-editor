@@ -1,9 +1,9 @@
+import fnmatch
 import hashlib
-import functools
-import json
 import typing
 import abc
 import os
+import pydantic
 
 import config_generated
 
@@ -53,6 +53,32 @@ class Parameter:
     def name(self):
         return self.definition["name"]
 
+def extend_merge[T: pydantic.BaseModel](base_t: T, add_t: T) -> T:
+    def merge_value(base, add):
+        if base is None:
+            return add
+        if add is None:
+            return base
+        if isinstance(base, list):
+            return base + add
+        if isinstance(base, dict):
+            return merge_dict(base, add)
+        return add
+
+    def merge_dict(base, add):
+        result = {}
+        for key, value in base.items():
+            if key in add:
+                result[key] = merge_value(value, add[key])
+            else:
+                result[key] = value
+        for key, value in add.items():
+            if key not in base:
+                result[key] = value
+        return result
+
+    return base_t.model_construct(**merge_dict(base_t.model_dump(), add_t.model_dump()))
+
 
 class ScadContext:
     def __init__(
@@ -72,13 +98,14 @@ class ScadContext:
                 definition,
                 groups.setdefault(definition["group"], GroupInfo(self, definition["group"]))
             ) for definition in definitions]
-        for name, meta in config.param_metadata.items():
+        for key, meta in config.param_metadata.items():
+            any_match = False
             for candidate in self.params:
-                if name == candidate.name:
-                    candidate.metadata = meta
-                    break
-            else:
-                raise RuntimeError(f"Parameter {name} has declared metadata but not found in scad files for {self.config.file}")
+                if fnmatch.fnmatch(candidate.name, key):
+                    candidate.metadata = extend_merge(candidate.metadata, meta)
+                    any_match = True
+            if not any_match and meta.require_present:
+                raise RuntimeError(f"Parameter metadata '{key}' not found in scad files for '{self.config.file}'. If this is intentional, add require_present=false to the metadata.")
 
     def name(self):
         return os.path.basename(self.config.file).removesuffix(".scad")

@@ -38,3 +38,57 @@ def test_merging():
     assert ctx.params[2].name == "gridy"
     assert ctx.params[2].definition["initial"] == 3
     assert ctx.params[2].definition["caption"] == "Grid Y"
+
+def test_param_metadata_wildcard_order():
+    loader = MockParamsLoader({
+        "model.scad": [
+            {"name": "magnet-orientation", "caption": "P0", "group": "Default"},
+            {"name": "magnet-height", "caption": "P1", "group": "Default"},
+            {"name": "magnet-diameter", "caption": "P2", "group": "Default"},
+        ]
+    })
+    ctx = model.ScadContext(
+        config_generated.ModelItem.model_validate({
+            "file": "model.scad",
+            "param-metadata": {
+                "magnet-orientation": { "help-link": "fizz.com" },
+                "*": { "help-link": "foo.com" },
+                "magnet-diameter": { "help-link": "bar.com" }
+            }
+        }),
+        loader
+    )
+    assert ctx.params[0].metadata.help_link == "foo.com"
+    assert ctx.params[1].metadata.help_link == "foo.com"
+    assert ctx.params[2].metadata.help_link == "bar.com"
+
+def test_param_metadata_wildcard_match():
+    loader = MockParamsLoader({
+        "model.scad": [
+            {"name": "magnet-orientation", "caption": "P0", "group": "Default"},
+        ]
+    })
+
+    try:
+        model.ScadContext(
+            config_generated.ModelItem.model_validate({
+                "file": "model.scad",
+                "param-metadata": {
+                    "foo-*": { "help-link": "foo.com" },
+                }
+            }),
+            loader
+        )
+        assert False, "Expected exception"
+    except RuntimeError:
+        pass
+
+    model.ScadContext(
+        config_generated.ModelItem.model_validate({
+            "file": "model.scad",
+            "param-metadata": {
+                "foo-*": { "help-link": "foo.com", "require-present": False },
+            }
+        }),
+        loader
+    )

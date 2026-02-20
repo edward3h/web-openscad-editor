@@ -120,6 +120,11 @@
             "^[a-zA-Z0-9_-]+$": {
               "type": "object",
               "properties": {
+                "require-present": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Require at least parameter of this name to exist. If a parameter of this name is not found, an error is thrown. This is on by default, but you can turn it off if you have wildcards that don't always match something."
+                },
                 "presets": {
                   "type": ["object", "null"],
                   "description": "Named presets for this parameter",
