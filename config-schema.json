@@ -65,7 +65,8 @@
         "[a-zA-Z0-9_-]+": {
           "$ref": "#/$defs/ModelConfig"
         }
-      }
+      },
+      "default": {}
     },
     "model": {
       "type": "array",
