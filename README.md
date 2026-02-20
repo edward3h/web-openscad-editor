@@ -87,7 +87,8 @@ sha256-wasm-web = "..."
 # Where to load fonts from. These fonts will be embedded in the generator to render text.
 # "appimage" will use the fonts included in the OpenSCAD AppImage.
 # "system" will use the fonts installed on the system.
-# "auto" will use the fonts included in the OpenSCAD AppImage if available, otherwise use the system fonts.
+# "auto" will use the fonts included in the OpenSCAD AppImage if available, otherwise use 
+# the system fonts.
 font-source = "auto"
 ```
 
@@ -99,11 +100,13 @@ The individual models are defined using the ``[[model]]`` array. The `file` is t
 [[model]]
 # Path to the SCAD file, relative to the configuration file
 file = "my-model.scad"
-# Whether this model should act as the landing page for the generated website. If this is `true`, the model will be 
-# available at "https://example.com/". If this is `false`, it will be available at "https://example.com/my-model.html" 
-# (or "https://example.com/my-model" on GitHub Pages and Clouflare Pages). If this is not specified, the default 
-# depends on how many models are defined: For a single model, it will act as the landing page; for multiple models, 
-# it will not. Only one model per project can act as the landing page.
+# Whether this model should act as the landing page for the generated website. If this is 
+# `true`, the model will be available at "https://example.com/". If this is `false`, it 
+# will be available at "https://example.com/my-model.html" (or 
+# "https://example.com/my-model" on GitHub Pages and Clouflare Pages). If this is not 
+# specified, the default depends on how many models are defined: For a single model, it 
+# will act as the landing page; for multiple models, it will not. Only one model per 
+# project can act as the landing page.
 index = true
 ```
 
@@ -152,7 +155,8 @@ file = "my-model.scad"
 
 # Metadata for the "Magnets" tab in the "my-model.scad" model
 [model.tab-metadata."Magnets"]
-# Whether the tab should be collapsed by default. If unset, the tab will be expanded by default.
+# Whether the tab should be collapsed by default. If unset, the tab will be expanded by 
+# default.
 collapsed = true
 # An additional help link that will be shown in the tab header.
 help-link = "https://example.com"
@@ -172,8 +176,9 @@ file = "my-model.scad"
 help-link = "https://example.com"
 
 [model.param-metadata.magnet_size]
-# JavaScript expression that determines whether the parameter should be displayed. Here for example, the `magnet_size`
-# parameter will only be displayed if the `magnets` parameter is set to `true`.
+# JavaScript expression that determines whether the parameter should be displayed. Here 
+# for example, the `magnet_size` parameter will only be displayed if the `magnets` 
+# parameter is set to `true`.
 display-condition = {js = "magnets"}
 ```
 
@@ -227,9 +232,11 @@ head-extra = '<script defer src="https://your-umami-instance.com/script.js" data
 
 [[model]]
 file = "my-model.scad"
-# Whenever the user clicks the "Render" button, track the current value of the "magnets" parameter
+# Whenever the user clicks the "Render" button, track the current value of the "magnets" 
+# parameter
 umami-track-render = ["magnets"]
-# Whenever the user clicks the "Export STL" button, track the current value of the "magnets" and "magnet_style" parameters
+# Whenever the user clicks the "Export STL" button, track the current value of the 
+# "magnets" and "magnet_style" parameters
 umami-track-export = ["magnets", "magnet_style"]
 ```
 
