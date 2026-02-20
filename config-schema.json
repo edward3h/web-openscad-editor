@@ -158,6 +158,11 @@
                     "type": "boolean",
                     "description": "Whether this tab is collapsed by default",
                     "default": false
+                  },
+                  "help-link": {
+                    "type": ["string", "null"],
+                    "description": "Help link for this parameter",
+                    "default": null
                   }
                 }
               }
