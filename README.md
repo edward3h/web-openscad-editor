@@ -219,7 +219,43 @@ If multiple parameter metadata definitions match a parameter name, the metadata 
 
 Note that if there is no matching parameter for a metadata definition, even if the definition is a wildcard, an exception will be thrown. If you intentionally write a definition that does not always match a parameter, you can disable this check using `require-present = false`.
 
-#### Analytics
+### Model Templates
+
+To reuse model configuration, you can define a model template:
+
+```toml
+[model-template.default]
+description-extra-html = "This description is added to all models."
+
+[[model]]
+file = "model1.scad"
+
+[[model]]
+file = "model2.scad"
+```
+
+Models and model templates will inherit from the `default` template unless configured otherwise. Let's set the template name explicitly:
+
+```toml
+[model-template.bin]
+description-extra-html = "This is a bin."
+[model-template.other]
+description-extra-html = "This is a non-bin model."
+
+[[model]]
+template = "bin"
+file = "bin-normal.scad"
+[[model]]
+template = "bin"
+file = "bin-batteries.scad"
+[[model]]
+template = "other"
+file = "grid.scad"
+```
+
+Templates can also inherit from other templates, but they must be declared in inheritance order. Any template that is used must be declared, except for the `default` template, which is implicitly created if it is not present.
+
+### Analytics
 
 If you want to learn how your users configure your models, you can enable analytics tracking for specific parameters using [Umami](https://umami.is/). Whenever a user clicks the "Render" or "Export STL" button, a [custom event](https://umami.is/docs/track-events) is sent to Umami. The event properties will contain the configured values of the specified parameters.
 

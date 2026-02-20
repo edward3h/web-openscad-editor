@@ -92,3 +92,38 @@ def test_param_metadata_wildcard_match():
         }),
         loader
     )
+
+def test_template_default():
+    models = model.flatten_model_configs(config_generated.WebOpenscadEditorConfiguration.model_validate({
+        "model-template": { "default": { "description-extra-html": "foo" } },
+        "model": [ { "file": "model.scad" } ]
+    }))
+    assert len(models) == 1
+    assert models[0].description_extra_html == "foo"
+
+def test_template_explicit_match():
+    models = model.flatten_model_configs(config_generated.WebOpenscadEditorConfiguration.model_validate({
+        "model-template": { "tpl": { "description-extra-html": "foo" } },
+        "model": [ { "file": "model.scad", "template": "tpl" } ]
+    }))
+    assert len(models) == 1
+    assert models[0].description_extra_html == "foo"
+
+def test_template_explicit_mismatch():
+    models = model.flatten_model_configs(config_generated.WebOpenscadEditorConfiguration.model_validate({
+        "model-template": { "tpl": { "description-extra-html": "foo" } },
+        "model": [ { "file": "model.scad" } ]
+    }))
+    assert len(models) == 1
+    assert models[0].description_extra_html is None
+
+def test_template_nest():
+    models = model.flatten_model_configs(config_generated.WebOpenscadEditorConfiguration.model_validate({
+        "model-template": {
+            "tpl": { "description-extra-html": "foo" },
+            "tpl2": { "template": "tpl" }
+        },
+        "model": [ { "file": "model.scad", "template": "tpl2" } ]
+    }))
+    assert len(models) == 1
+    assert models[0].description_extra_html == "foo"

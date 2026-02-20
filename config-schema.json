@@ -59,6 +59,14 @@
         }
       }
     },
+    "model-template": {
+      "type": "object",
+      "patternProperties": {
+        "[a-zA-Z0-9_-]+": {
+          "$ref": "#/$defs/ModelConfig"
+        }
+      }
+    },
     "model": {
       "type": "array",
       "description": "Input SCAD files to process",
@@ -92,6 +100,10 @@
     "ModelConfig": {
       "type": "object",
       "properties": {
+        "template": {
+          "type": "string",
+          "default": "default"
+        },
         "additional-params": {
           "type": "array",
           "description": "Array of parameter JSON files",

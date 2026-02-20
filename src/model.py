@@ -77,7 +77,7 @@ def extend_merge[T: pydantic.BaseModel](base_t: T, add_t: T) -> T:
                 result[key] = value
         return result
 
-    return base_t.model_construct(**merge_dict(base_t.model_dump(), add_t.model_dump()))
+    return add_t.model_construct(**merge_dict(base_t.model_dump(), add_t.model_dump()))
 
 
 class ScadContext:
@@ -121,3 +121,20 @@ class GroupInfo:
 
     def __eq__(self, other):
         return self.name == other.name
+
+def flatten_model_configs(config: config_generated.WebOpenscadEditorConfiguration) -> typing.List[config_generated.ModelItem]:
+    templates = {}
+
+    def apply_template[T: config_generated.ModelConfig](cfg: T) -> T:
+        template = templates.get(cfg.template)
+        if template is None:
+            if cfg.template == "default":
+                return cfg
+            raise RuntimeError(f"Template '{cfg.template}' not found (did you declare them in the right order?)")
+        return extend_merge(template, cfg)
+
+    for name, cfg in config.model_template.items():
+        if name == "default" and len(templates) != 0:
+            raise RuntimeError("Default template must be declared first (or not at all)")
+        templates[name] = apply_template(cfg)
+    return [apply_template(cfg) for cfg in config.model]
