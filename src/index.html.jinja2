@@ -107,6 +107,18 @@
             rotate: -90deg;
         }
 
+        .group-header-control {
+            margin-right: 0.5rem;
+            display: inline-block;
+            vertical-align: baseline;
+            width: 16px;
+            height: 16px;
+        }
+        .group-header-control input {
+            display: inline-block;
+            cursor: pointer;
+        }
+
         :root {
             color-scheme: light dark;
             --page-bg: #ffffff;
@@ -338,7 +350,7 @@
 
         const displayConditions = {};
         {% for name in ctx.config.param_metadata.keys() -%}
-            {% if ctx.config.param_metadata[name].display_condition %}
+            {% if ctx.config.param_metadata[name].display_condition.js %}
                 displayConditions['{{ name }}'] = new Function(...Object.keys(currentCustomization), "return {{ ctx.config.param_metadata[name].display_condition.js }}");
             {% endif %}
         {%- endfor %}
@@ -357,7 +369,7 @@
                 }
             }
             {% for name in ctx.config.param_metadata.keys() -%}
-                {% if ctx.config.param_metadata[name].display_condition %}
+                {% if ctx.config.param_metadata[name].display_condition.js %}
                     {
                         const display = displayConditions['{{ name }}'](...Object.values(currentCustomization));
                         for (const elem of elementsForParameter["{{ name }}"]) {
@@ -704,14 +716,25 @@
                 </div> <!-- end of collapse -->
             {% endif %}
             {% set state.current_group = param.group %}
-            <h3 class="group-header{% if state.current_group.config.collapsed %} collapsed{% endif %}" data-bs-target="#collapse-{{ state.current_group.id }}" data-bs-toggle="collapse"><svg class="collapse-indicator" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" stroke="none"><path d="M 0 5 H 20 L 10 15 Z"/></svg>{{ state.current_group.name }}
-                {%- if state.current_group.config.help_link %}
-                    {{ help_link(state.current_group.config.help_link) }}
-                {%- endif -%}
-            </h3>
+            {%- if state.current_group.config.control_boolean -%}
+                <label class="group-header"><h3><span class="group-header-control"><input class="customizer" type="checkbox" attr-name="{{ param.name }}"></span>
+                    {{- state.current_group.name -}}
+                    {%- if state.current_group.config.help_link %}
+                        {{ help_link(state.current_group.config.help_link) }}
+                    {%- endif -%}
+                </h3></label>
+            {%- else -%}
+                <h3 class="group-header{% if state.current_group.config.collapsed %} collapsed{% endif %}" data-bs-target="#collapse-{{ state.current_group.id }}" data-bs-toggle="collapse"><svg class="collapse-indicator" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor" stroke="none"><path d="M 0 5 H 20 L 10 15 Z"/></svg>
+                    {{- state.current_group.name -}}
+                    {%- if state.current_group.config.help_link %}
+                        {{ help_link(state.current_group.config.help_link) }}
+                    {%- endif -%}
+                </h3>
+            {%- endif -%}
             <div class="collapse{% if not state.current_group.config.collapsed %} show{% endif %}" id="collapse-{{ state.current_group.id }}">
         {% endif %}
         {% set pid = "parameter_" + param.name %}
+        {% if param.metadata.display_condition.fixed %}
         <div class="col-12" data-parameter="{{ param.name }}">
             <label for="{{ pid }}">
                 {% for piece in param.name.split("_") -%}
@@ -764,6 +787,7 @@
                 </div>
             {% endif %}
         </div>
+        {% endif %}
     {% endfor %}
     {% if state.current_group %}
         </div> <!-- end of collapse -->

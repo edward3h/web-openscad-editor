@@ -165,11 +165,16 @@
                 "display-condition": {
                   "type": ["object", "null"],
                   "description": "Expression with a condition to display this parameter",
-                  "default": null,
+                  "default": {},
                   "properties": {
                     "js": {
                       "type": "string",
                       "description": "JavaScript expression"
+                    },
+                    "fixed": {
+                      "type": "boolean",
+                      "description": "Fixed value",
+                      "default": true
                     }
                   }
                 },
@@ -199,8 +204,14 @@
                   "type": ["string", "null"],
                   "description": "Help link for this parameter",
                   "default": null
+                },
+                "control-boolean": {
+                  "type": ["string", "null"],
+                  "description": "parameter that is controlled by this tab",
+                  "default": null
                 }
-              }
+              },
+              "default": {}
             }
           }
         },

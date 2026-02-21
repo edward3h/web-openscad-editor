@@ -59,6 +59,7 @@ class Presets(BaseModel):
 
 class DisplayCondition(BaseModel):
     js: str | None = Field(None, description='JavaScript expression')
+    fixed: bool | None = Field(True, description='Fixed value')
 
 
 class ParamMetadata(BaseModel):
@@ -71,7 +72,7 @@ class ParamMetadata(BaseModel):
         None, description='Named presets for this parameter'
     )
     display_condition: DisplayCondition | None = Field(
-        None,
+        default_factory=lambda: DisplayCondition.model_validate({}),
         alias='display-condition',
         description='Expression with a condition to display this parameter',
     )
@@ -86,6 +87,11 @@ class TabMetadata(BaseModel):
     )
     help_link: str | None = Field(
         None, alias='help-link', description='Help link for this parameter'
+    )
+    control_boolean: str | None = Field(
+        None,
+        alias='control-boolean',
+        description='parameter that is controlled by this tab',
     )
 
 

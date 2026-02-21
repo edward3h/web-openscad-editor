@@ -162,6 +162,27 @@ collapsed = true
 help-link = "https://example.com"
 ```
 
+##### Tab Control
+
+For some tabs, it makes sense to toggle the tab depending on a single checkbox. To save space, you can place this checkbox in the tab header, replacing the collapser triangle:
+
+```toml
+[[model]]
+file = "my-model.scad"
+
+[model.tab-metadata."Magnets"]
+# A checkbox that controls the "magnets" parameter will be added to the tab header
+control-boolean = "magnets"
+
+[model.param-metadata.magnets]
+# Hide the normal checkbox (may be automatic in the future)
+display-condition = {fixed = false}
+
+[model.param-metadata.magnet_style]
+# Hide tab options depending on the checkbox value (may be automatic in the future)
+display-condition = {js = "magnets"}
+```
+
 #### Parameter Metadata
 
 Parameter metadata allows you to define additional settings for individual parameters. The definition is similar to tab metadata. Similar to tabs, parameter metadata is specific to each model.
@@ -180,6 +201,8 @@ help-link = "https://example.com"
 # for example, the `magnet_size` parameter will only be displayed if the `magnets` 
 # parameter is set to `true`.
 display-condition = {js = "magnets"}
+# You can also hide the parameter permanently like this:
+display-condition = {fixed = false}
 ```
 
 ##### Presets
