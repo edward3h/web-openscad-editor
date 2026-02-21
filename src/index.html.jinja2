@@ -732,6 +732,7 @@
                 </h3>
             {%- endif -%}
             <div class="collapse{% if not state.current_group.config.collapsed %} show{% endif %}" id="collapse-{{ state.current_group.id }}">
+            {%- if state.current_group.config.description_html %}<p class="form-text">{{ state.current_group.config.description_html | safe }}</p>{% endif -%}
         {% endif %}
         {% set pid = "parameter_" + param.name %}
         {% if param.metadata.display_condition.fixed %}
@@ -742,7 +743,8 @@
                     {%- if not loop.last %}<span class="param_underscore">_</span>{% endif -%}
                 {%- endfor %}
                 {% if param.metadata.help_link %}{{ help_link(param.metadata.help_link) }}{% endif %}
-                {%- if param.definition['caption'] is defined %}<br><span class="form-text">{{ param.definition['caption'] }}</span>{% endif -%}
+                {%- if param.metadata.description_html %}<br><span class="form-text">{{ param.metadata.description_html | safe }}</span>
+                {%- elif param.definition['caption'] is defined %}<br><span class="form-text">{{ param.definition['caption'] }}</span>{% endif -%}
             </label>
         </div>
         <div class="col-12 mb-3" data-parameter="{{ param.name }}">

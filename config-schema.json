@@ -182,6 +182,10 @@
                   "type": ["string", "null"],
                   "description": "Help link for this parameter",
                   "default": null
+                },
+                "description-html": {
+                  "type": "string",
+                  "description": "HTML description for this parameter. This replaces the description defined in the OpenSCAD file"
                 }
               }
             }
@@ -208,6 +212,11 @@
                 "control-boolean": {
                   "type": ["string", "null"],
                   "description": "parameter that is controlled by this tab",
+                  "default": null
+                },
+                "description-html": {
+                  "type": "string",
+                  "description": "HTML description for this tab.",
                   "default": null
                 }
               },

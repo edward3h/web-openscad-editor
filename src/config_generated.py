@@ -79,6 +79,11 @@ class ParamMetadata(BaseModel):
     help_link: str | None = Field(
         None, alias='help-link', description='Help link for this parameter'
     )
+    description_html: str | None = Field(
+        None,
+        alias='description-html',
+        description='HTML description for this parameter. This replaces the description defined in the OpenSCAD file',
+    )
 
 
 class TabMetadata(BaseModel):
@@ -92,6 +97,9 @@ class TabMetadata(BaseModel):
         None,
         alias='control-boolean',
         description='parameter that is controlled by this tab',
+    )
+    description_html: str | None = Field(
+        None, alias='description-html', description='HTML description for this tab.'
     )
 
 
