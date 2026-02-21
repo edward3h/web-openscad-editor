@@ -339,21 +339,11 @@
             return !jsonEqual(currentValue, defaultValue);
         }
 
-        const elementsForParameter = {};
-        for (const elem of document.querySelectorAll("[data-parameter]")) {
-            const parameterName = elem.dataset.parameter;
-            if (!(parameterName in elementsForParameter)) {
-                elementsForParameter[parameterName] = [];
-            }
-            elementsForParameter[parameterName].push(elem);
+        const conditionalElements = [];
+        for (const elem of document.querySelectorAll("[data-display-condition]")) {
+            const js = elem.dataset.displayCondition;
+            conditionalElements.push({element: elem, predicate: new Function(...Object.keys(currentCustomization), "return " + js)});
         }
-
-        const displayConditions = {};
-        {% for name in ctx.config.param_metadata.keys() -%}
-            {% if ctx.config.param_metadata[name].display_condition.js %}
-                displayConditions['{{ name }}'] = new Function(...Object.keys(currentCustomization), "return {{ ctx.config.param_metadata[name].display_condition.js }}");
-            {% endif %}
-        {%- endfor %}
 
         function syncCustomizationIndicators() {
             for (const group of document.querySelectorAll(".customizer-group")) {
@@ -368,16 +358,9 @@
                     btn.disabled = !modified;
                 }
             }
-            {% for name in ctx.config.param_metadata.keys() -%}
-                {% if ctx.config.param_metadata[name].display_condition.js %}
-                    {
-                        const display = displayConditions['{{ name }}'](...Object.values(currentCustomization));
-                        for (const elem of elementsForParameter["{{ name }}"]) {
-                            elem.style.display = display ? "" : "none";
-                        }
-                    }
-                {% endif %}
-            {%- endfor %}
+            for (const elem of conditionalElements) {
+                elem.element.style.display = elem.predicate(...Object.values(currentCustomization)) ? "" : "none";
+            }
         }
 
         function applyCustomizationToInputs() {
@@ -731,12 +714,13 @@
                     {%- endif -%}
                 </h3>
             {%- endif -%}
-            <div class="collapse{% if not state.current_group.config.collapsed %} show{% endif %}" id="collapse-{{ state.current_group.id }}">
             {%- if state.current_group.config.description_html %}<p class="form-text">{{ state.current_group.config.description_html | safe }}</p>{% endif -%}
+            <div class="collapse{% if not state.current_group.config.collapsed %} show{% endif %}" id="collapse-{{ state.current_group.id }}">
+            {%- if state.current_group.config.description_collapsible_html %}<p class="form-text"{% if state.current_group.config.control_boolean %} data-display-condition="{{ state.current_group.config.control_boolean }}"{% endif %}>{{ state.current_group.config.description_collapsible_html | safe }}</p>{% endif -%}
         {% endif %}
         {% set pid = "parameter_" + param.name %}
         {% if param.metadata.display_condition.fixed %}
-        <div class="col-12" data-parameter="{{ param.name }}">
+        <div class="col-12"{% if param.metadata.display_condition.js %} data-display-condition="{{ param.metadata.display_condition.js }}"{% endif %}>
             <label for="{{ pid }}">
                 {% for piece in param.name.split("_") -%}
                     {{ piece }}
@@ -747,7 +731,7 @@
                 {%- elif param.definition['caption'] is defined %}<br><span class="form-text">{{ param.definition['caption'] }}</span>{% endif -%}
             </label>
         </div>
-        <div class="col-12 mb-3" data-parameter="{{ param.name }}">
+        <div class="col-12 mb-3"{% if param.metadata.display_condition.js %} data-display-condition="{{ param.metadata.display_condition.js }}"{% endif %}>
             {% if param.definition['type'] == 'number' and param.definition["initial"] is iterable %}
                 <div class="input-group customizer-group" attr-name="{{ param.name }}">
                     {% for initial in param.definition["initial"] %}

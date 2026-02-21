@@ -160,6 +160,10 @@ file = "my-model.scad"
 collapsed = true
 # An additional help link that will be shown in the tab header.
 help-link = "https://example.com"
+# Description that is always shown
+description-html = "Magnets for holding bins in place."
+# Description that is hidden when the tab is collapsed
+description-collapsed-html = "<a href=\"https://example.com\">Buy magnets in my shop</a>"
 ```
 
 ##### Tab Control
@@ -203,6 +207,8 @@ help-link = "https://example.com"
 display-condition = {js = "magnets"}
 # You can also hide the parameter permanently like this:
 display-condition = {fixed = false}
+# HTML description that replaces the description from the OpenSCAD file.
+description-html = "Magnets diameter in mm."
 ```
 
 ##### Presets

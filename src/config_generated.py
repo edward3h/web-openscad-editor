@@ -101,6 +101,11 @@ class TabMetadata(BaseModel):
     description_html: str | None = Field(
         None, alias='description-html', description='HTML description for this tab.'
     )
+    description_collapsible_html: str | None = Field(
+        None,
+        alias='description-collapsible-html',
+        description='HTML description for this tab that is part of the collapsible section (or hidden by `control-boolean`).',
+    )
 
 
 class ModelConfig(BaseModel):

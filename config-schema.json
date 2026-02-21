@@ -218,6 +218,11 @@
                   "type": "string",
                   "description": "HTML description for this tab.",
                   "default": null
+                },
+                "description-collapsible-html": {
+                  "type": "string",
+                  "description": "HTML description for this tab that is part of the collapsible section (or hidden by `control-boolean`).",
+                  "default": null
                 }
               },
               "default": {}
