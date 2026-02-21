@@ -127,3 +127,17 @@ def test_template_nest():
     }))
     assert len(models) == 1
     assert models[0].description_extra_html == "foo"
+
+def test_template_param_metadata():
+    models = model.flatten_model_configs(config_generated.WebOpenscadEditorConfiguration.model_validate({
+        "model-template": {
+            "bin": {
+                "param-metadata": {
+                    "foo": { "help-link": "foo.com" }
+                }
+            }
+        },
+        "model": [ { "file": "model.scad", "template": "bin" } ]
+    }))
+    assert len(models) == 1
+    assert models[0].param_metadata["foo"].help_link == "foo.com"

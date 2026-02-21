@@ -77,7 +77,7 @@ def extend_merge[T: pydantic.BaseModel](base_t: T, add_t: T) -> T:
                 result[key] = value
         return result
 
-    return add_t.model_construct(**merge_dict(base_t.model_dump(), add_t.model_dump()))
+    return add_t.model_validate(merge_dict(base_t.model_dump(by_alias=True), add_t.model_dump(by_alias=True)))
 
 
 class ScadContext:
