@@ -104,7 +104,7 @@ def test_template_default():
 def test_template_explicit_match():
     models = model.flatten_model_configs(config_generated.WebOpenscadEditorConfiguration.model_validate({
         "model-template": { "tpl": { "description-extra-html": "foo" } },
-        "model": [ { "file": "model.scad", "template": "tpl" } ]
+        "model": [ { "file": "model.scad", "template": ["tpl"] } ]
     }))
     assert len(models) == 1
     assert models[0].description_extra_html == "foo"
@@ -121,9 +121,9 @@ def test_template_nest():
     models = model.flatten_model_configs(config_generated.WebOpenscadEditorConfiguration.model_validate({
         "model-template": {
             "tpl": { "description-extra-html": "foo" },
-            "tpl2": { "template": "tpl" }
+            "tpl2": { "template": ["tpl"] }
         },
-        "model": [ { "file": "model.scad", "template": "tpl2" } ]
+        "model": [ { "file": "model.scad", "template": ["tpl2"] } ]
     }))
     assert len(models) == 1
     assert models[0].description_extra_html == "foo"
@@ -137,7 +137,19 @@ def test_template_param_metadata():
                 }
             }
         },
-        "model": [ { "file": "model.scad", "template": "bin" } ]
+        "model": [ { "file": "model.scad", "template": ["bin"] } ]
     }))
     assert len(models) == 1
     assert models[0].param_metadata["foo"].help_link == "foo.com"
+
+def test_template_multi():
+    models = model.flatten_model_configs(config_generated.WebOpenscadEditorConfiguration.model_validate({
+        "model-template": {
+            "tpl": { "description-extra-html": "foo", "additional-params": ["fizz.json"] },
+            "tpl2": { "additional-params": ["buzz.json"] }
+        },
+        "model": [ { "file": "model.scad", "template": ["tpl", "tpl2"] } ]
+    }))
+    assert len(models) == 1
+    assert models[0].description_extra_html == "foo"
+    assert models[0].additional_params == [ "fizz.json", "buzz.json"]

@@ -253,18 +253,20 @@ Models and model templates will inherit from the `default` template unless confi
 
 ```toml
 [model-template.bin]
-description-extra-html = "This is a bin."
-[model-template.other]
-description-extra-html = "This is a non-bin model."
+additional-params = ["common-bin-params.json"]
+[model-template.unsupported]
+description-extra-html = "This model is unsupported."
+[model-template.featured]
+description-extra-html = "This is a featured model."
 
 [[model]]
-template = "bin"
+template = ["bin", "featured"]
 file = "bin-normal.scad"
 [[model]]
-template = "bin"
+template = ["bin"]
 file = "bin-batteries.scad"
 [[model]]
-template = "other"
+template = ["unsupported"]
 file = "grid.scad"
 ```
 

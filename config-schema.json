@@ -102,8 +102,11 @@
       "type": "object",
       "properties": {
         "template": {
-          "type": "string",
-          "default": "default"
+          "type": "list",
+          "items": {
+            "type": "string"
+          },
+          "default": ["default"]
         },
         "additional-params": {
           "type": "array",

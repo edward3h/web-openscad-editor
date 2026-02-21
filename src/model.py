@@ -126,12 +126,15 @@ def flatten_model_configs(config: config_generated.WebOpenscadEditorConfiguratio
     templates = {}
 
     def apply_template[T: config_generated.ModelConfig](cfg: T) -> T:
-        template = templates.get(cfg.template)
-        if template is None:
-            if cfg.template == "default":
-                return cfg
-            raise RuntimeError(f"Template '{cfg.template}' not found (did you declare them in the right order?)")
-        return extend_merge(template, cfg)
+        merged = cfg
+        for tpl_name in reversed(cfg.template):
+            template = templates.get(tpl_name)
+            if template is None:
+                if tpl_name == "default":
+                    continue
+                raise RuntimeError(f"Template '{tpl_name}' not found (did you declare them in the right order?)")
+            merged = extend_merge(template, merged)
+        return merged
 
     for name, cfg in config.model_template.items():
         if name == "default" and len(templates) != 0:

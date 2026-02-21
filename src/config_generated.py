@@ -90,7 +90,7 @@ class TabMetadata(BaseModel):
 
 
 class ModelConfig(BaseModel):
-    template: str | None = 'default'
+    template: list[str] | None = ['default']
     additional_params: list[str] | None = Field(
         [], alias='additional-params', description='Array of parameter JSON files'
     )
