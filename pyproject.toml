@@ -19,6 +19,7 @@ input = "config-schema.json"
 output = "src/config_generated.py"
 output-model-type = "pydantic_v2.BaseModel"
 field-constraints = true
+disable-timestamp = true
 
 [tool.pytest.ini_options]
 addopts = [
