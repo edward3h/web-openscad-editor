@@ -272,6 +272,8 @@ async function renderOnce({ input, normalParams, additionalParams }) {
         input,
         "-o",
         output,
+        {% for feat in config.openscad.enable_features %}"--enable={{ feat }}",
+        {% endfor %}
         "--export-format=binstl",
         "-p",
         "/parameters.json",
