@@ -94,15 +94,6 @@ font-source = "auto"
 enable-features = ["roof"]
 ```
 
-#### Local font files
-
-Fonts can also be included from `.ttf` files relative to the SCAD file.
-See [Fonts & Styles in the OpenSCAD manual](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Text#Using_Fonts_&_Styles).
-
-Example: `use <fonts/Comic_Sans_MS_Bold.ttf>`
-
-In this case, the font will be added in the generator without additional configuration.
-
 ### Model Files
 
 The individual models are defined using the ``[[model]]`` array. The `file` is the only required field.
