@@ -56,6 +56,12 @@
           "enum": ["auto", "appimage", "system"],
           "default": "auto",
           "description": "Font source selection"
+        },
+        "enable-features": {
+          "type": "array",
+          "description": "List of OpenSCAD experimental features to enable, passed as --enable=<feature> arguments.",
+          "items": { "type": "string" },
+          "default": []
         }
       }
     },

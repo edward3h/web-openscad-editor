@@ -78,7 +78,8 @@ def main():
 
         def load_scad(self, declared_path: str) -> model.ParamSet:
             with tempfile.NamedTemporaryFile(mode="r", suffix=".json", delete=False) as f:
-                run_openscad("-o", f.name, "--export-format=param", declared_path)
+                enable_args = [f"--enable={feat}" for feat in (config.openscad.enable_features or [])]
+                run_openscad("-o", f.name, "--export-format=param", *enable_args, declared_path)
                 return json.load(f)["parameters"]
 
     # Create ScadContext objects from config inputs

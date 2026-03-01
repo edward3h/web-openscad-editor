@@ -48,6 +48,11 @@ class Openscad(BaseModel):
     font_source: FontSource | None = Field(
         'auto', alias='font-source', description='Font source selection'
     )
+    enable_features: list[str] | None = Field(
+        [],
+        alias='enable-features',
+        description='List of OpenSCAD experimental features to enable, passed as --enable=<feature> arguments.',
+    )
 
 
 class Presets(BaseModel):
