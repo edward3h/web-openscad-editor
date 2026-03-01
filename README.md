@@ -90,6 +90,8 @@ sha256-wasm-web = "..."
 # "auto" will use the fonts included in the OpenSCAD AppImage if available, otherwise use 
 # the system fonts.
 font-source = "auto"
+# Experimental OpenSCAD features to enable (passed as --enable=<feature>)
+enable-features = ["roof"]
 ```
 
 ### Model Files
