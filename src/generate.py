@@ -182,7 +182,10 @@ def load_scad_recursively(host_path: str, root: str, fs: typing.Dict[str, bytes]
     with open(host_path, "rb") as f:
         binary = f.read()
     fs[virtual_path] = binary
-    text = binary.decode("utf-8")
+    try:
+        text = binary.decode("utf-8")
+    except UnicodeDecodeError:
+        return  # Binary file; no includes to scan
     for line in text.splitlines():
         include = pattern_include.match(line)
         if include:
