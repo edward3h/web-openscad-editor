@@ -21,3 +21,5 @@ openscad-wasm/
 # Local OpenSCAD downloads
 OpenSCAD-*-WebAssembly-*.zip
 OpenSCAD-*-x86_64.AppImage
+
+CLAUDE.md
