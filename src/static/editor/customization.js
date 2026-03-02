@@ -217,6 +217,22 @@ export function createCustomizationController({ defaultCustomization, additional
         }
     }
 
+    function applyCustomization(customization, { reset = true } = {}) {
+        if (reset) {
+            resetCurrentCustomizationToDefault();
+        }
+        if (customization && typeof customization === "object" && !Array.isArray(customization)) {
+            for (const [k, v] of Object.entries(customization)) {
+                if (k in defaultCustomization) {
+                    currentCustomization[k] = v;
+                }
+            }
+        }
+        applyCustomizationToInputs();
+        updateUrlFromCustomization();
+        onChanged();
+    }
+
     function setValue(name, value) {
         currentCustomization[name] = value;
         applyCustomizationToInputs();
@@ -266,15 +282,21 @@ export function createCustomizationController({ defaultCustomization, additional
         return currentCustomization;
     }
 
+    function getChangedCustomization() {
+        return computeChangedCustomization();
+    }
+
     function getAdditionalParamNames() {
         return additionalParamNames;
     }
 
     return {
         restoreFromHash,
+        applyCustomization,
         setValue,
         attachInputListeners,
         getCurrentCustomization,
+        getChangedCustomization,
         getAdditionalParamNames,
     };
 }

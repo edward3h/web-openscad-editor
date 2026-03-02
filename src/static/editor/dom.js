@@ -11,6 +11,7 @@ export function getDomRefs() {
         renderState: document.getElementById("render-state"),
         downloadStlButton: document.getElementById("download-stl"),
         autoRenderCheckbox: document.getElementById("auto-render"),
+        profilesList: document.getElementById("profiles-list"),
         renderError: document.getElementById("render-error"),
         renderErrorSummary: document.getElementById("render-error-summary"),
         renderErrorLog: document.getElementById("render-error-log"),
