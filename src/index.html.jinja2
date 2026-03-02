@@ -204,6 +204,39 @@
         })
         let lastResult = null;
         let isInitialRender = true;
+        function applyCameraFromSummary(camera) {
+            if (!camera) {
+                return;
+            }
+            const mv = document.getElementById("model");
+            const rotation = camera.rotation; // [rx, ry, rz] i.e. $vpr
+            const distance = camera.distance;  // $vpd in mm
+            const translation = camera.translation; // [x, y, z] i.e. $vpt
+
+            // $vpr = [rx, ry, rz] where rx=phi, rz=theta for model-viewer
+            let theta = 25, phi = 55, radius = "auto";
+            if (Array.isArray(rotation) && rotation.length === 3) {
+                phi = rotation[0];
+                theta = rotation[2];
+            }
+            if (typeof distance === "number") {
+                radius = (distance * 0.001) + "m"; // mm to metres (glTF unit)
+            }
+
+            let target = "auto auto auto";
+            if (Array.isArray(translation) && translation.length === 3) {
+                // OpenSCAD coords -> model-viewer coords after -90deg X rotation:
+                // (x, y, z) -> (x, z, -y) in metres
+                const tx = translation[0] * 0.001;
+                const ty = translation[2] * 0.001;
+                const tz = -translation[1] * 0.001;
+                target = tx + "m " + ty + "m " + tz + "m";
+            }
+
+            mv.setAttribute("camera-orbit", theta + "deg " + phi + "deg " + radius);
+            mv.setAttribute("camera-target", target);
+        }
+
         worker.addEventListener("message", (event) => {
             if (!event.data || typeof event.data !== "object") {
                 return;
@@ -211,6 +244,7 @@
             if (event.data.type === "ok") {
                 lastResult = event.data;
                 document.getElementById("model").src = URL.createObjectURL(new Blob([event.data.glb], {type: "model/gltf-binary"}));
+                applyCameraFromSummary(event.data.camera);
                 clearRenderError();
                 setRendering(false);
                 {% if ctx.config.umami_track_render is not none %}
@@ -626,7 +660,7 @@
 <body>
 <div id="pane-left">
     <!-- the environment image disables the default lighting -->
-    <model-viewer id="model" camera-controls interaction-prompt="none"
+    <model-viewer id="model" camera-controls interaction-prompt="none" orientation="0deg -90deg 0deg"
                   environment-image="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAAIABADASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AJVAA//Z"></model-viewer>
     <div id="controls">
         <button id="render" type="button" class="btn btn-primary">Render<span id="render-state" class="d-none">ing… <span
