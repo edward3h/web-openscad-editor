@@ -279,6 +279,10 @@ async function renderOnce({ input, normalParams, additionalParams }) {
         "/parameters.json",
         "-P",
         "single",
+        "--summary",
+        "camera",
+        "--summary-file",
+        "/camera-summary.json",
     ]
     for (const [k, v] of Object.entries(additionalParams)) {
         // -D expects an OpenSCAD expression; JSON happens to be close enough for our value types.
@@ -289,10 +293,21 @@ async function renderOnce({ input, normalParams, additionalParams }) {
         instance.callMain(args)
         const stlBytes = instance.FS.readFile(output)
         const glb = await stlBytesToGlb(stlBytes)
+        let camera = null
+        try {
+            const summaryBytes = instance.FS.readFile("/camera-summary.json", { encoding: "utf8" })
+            const summary = JSON.parse(summaryBytes)
+            if (summary && summary.camera) {
+                camera = summary.camera
+            }
+        } catch (e) {
+            logInfo("No camera summary available:", e)
+        }
         self.postMessage({
             type: "ok",
             glb: glb,
             stl: stlBytes,
+            camera: camera,
         })
     } catch (e) {
         logError(e)
